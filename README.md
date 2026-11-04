@@ -37,7 +37,14 @@ Each speaker card has a voice picker, ▶ to preview, and ✎ for personality, s
 - Modes: **Debate**, **Collaborate**, **Casual chat**, **Improv scene**, **Interview**.
 - 🎲 random topics; leave the subject empty for a surprise.
 - Streaming text with the spoken sentence highlighted. The next line is written while the current one is spoken, so there's no dead air.
-- **Moderator curveballs:** type a line mid-conversation and both speakers react to it.
+- **Moderator curveballs:** type a line mid-conversation and both speakers react to it. Press 📌 to make it a lasting scene fact instead.
+- **🌍 Scene: living world facts.** Add facts to the speakers' world at any time ("all sparkling water is cold", "it's the year 3000"). They shape every reply from the next turn on. Each fact can be:
+  - **Quiet** (simply true) or **📢 announced** (breaking news they react to);
+  - known to **everyone**, or a **🔒 secret** only one speaker knows;
+  - **forever**, or **timed** (true for the next N lines);
+  - **switched off** (click it), **removed quietly** (×), or **retconned** (↩: they're told it's no longer true).
+  What was already said stays said; facts only shape what comes next.
+  - **🎲 Twist** lets the AI invent a fact, and **🎭 Presets** load whole worlds (pirate cove, year 3000, zombie apocalypse…).
 - **Endless mode** with a rolling summary, so long conversations never overflow the model's memory.
 - **Referee (optional):** a hidden judge that ends the show when the speakers agree, conclude, or go in circles, and names a debate winner.
 - **Anti-loop nudges:** secret per-turn moderator notes that keep models from collapsing into "great point, I agree!"

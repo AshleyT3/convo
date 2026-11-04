@@ -147,6 +147,31 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .footer-bar input:focus { outline: none; border-color: var(--brand); }
 .stats { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 
+/* scene (living world facts) */
+.scene { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+.scene-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.scene-title { display: flex; align-items: center; gap: 8px; border: none; background: none; cursor: pointer; font-weight: 700; padding: 2px 0; }
+.scene-title .count { font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+.scene-title .caret { color: var(--muted); font-size: 0.8rem; }
+.scene-tools { display: flex; gap: 6px; align-items: center; }
+.scene-tools select, .fact-add select { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg2); font-size: 0.85rem; }
+.scene-hint { margin: 0; }
+.facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.fact { --accent: #34d399; display: inline-flex; align-items: center; gap: 2px; max-width: 100%; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, var(--bg2)); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: 0.86rem; animation: rise 0.2s ease-out; }
+.fact.off, .fact.expired { --accent: var(--muted); opacity: 0.6; }
+.fact.off .fact-text, .fact.expired .fact-text { text-decoration: line-through; }
+.fact-text { border: none; background: none; cursor: pointer; padding: 2px 4px; text-align: left; overflow-wrap: anywhere; }
+.fact-text:disabled { cursor: default; }
+.secret { font-size: 0.75rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.timer { font-size: 0.75rem; color: var(--muted); padding: 0 4px; white-space: nowrap; }
+.fact-x { border: none; background: none; cursor: pointer; color: var(--muted); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.fact-x:hover { color: var(--text); background: var(--panel2); }
+.fact-add { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.fact-add input { flex: 1 1 220px; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg2); }
+.fact-add input:focus { outline: none; border-color: var(--brand); }
+.toggle-btn.on { border-color: #fbbf24; color: #fbbf24; }
+.scene-marker { align-self: center; font-size: 0.8rem; color: var(--muted); padding: 2px 10px; border-left: 2px solid #34d399; border-right: 2px solid #34d399; border-radius: 4px; max-width: 90%; text-align: center; }
+
 /* settings drawer */
 .drawer-wrap { position: fixed; inset: 0; background: rgba(5, 7, 12, 0.55); display: flex; justify-content: flex-end; z-index: 10; animation: fade 0.15s; }
 @keyframes fade { from { opacity: 0; } }

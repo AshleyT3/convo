@@ -2,7 +2,7 @@
 // the referee and the rolling summary. This file is "the product" — tune freely.
 
 import type { ChatMessage } from "../llm/types.ts";
-import type { ConversationSettings, ModeId, ReplyLength, Speaker, Turn } from "./types.ts";
+import type { ConversationSettings, ModeId, ReplyLength, SceneFact, Speaker, Turn } from "./types.ts";
 
 export interface ModeDef {
   id: ModeId;
@@ -127,11 +127,75 @@ export const SUBJECT_IDEAS = [
   "Is a sense of humour a sign of intelligence?",
 ];
 
+export interface ScenePreset {
+  name: string;
+  facts: string[];
+}
+
+export const SCENE_PRESETS: ScenePreset[] = [
+  { name: "Pirate cove", facts: ["Everyone here is a pirate", "Gold doubloons are the only currency", "A parrot is listening and repeats everything"] },
+  { name: "Year 3000", facts: ["It is the year 3000", "Robots run the government", "Nobody has seen a real tree in centuries"] },
+  { name: "Medieval court", facts: ["You are nobles at a medieval royal court", "The king is listening and easily offended", "Dragons are real and somewhat common"] },
+  { name: "Zombie apocalypse", facts: ["A zombie apocalypse started last week", "You are hiding in an abandoned supermarket", "Supplies are running low"] },
+  { name: "Live cooking show", facts: ["You are contestants on a live TV cooking show", "There are 3 minutes left on the clock", "The judges can hear everything"] },
+  { name: "Opposite day", facts: ["It is Opposite Day: everyone must mean the opposite of what they say", "Breaking the rule is punishable by tickling"] },
+  { name: "Underwater city", facts: ["You live in a city at the bottom of the ocean", "Sharks are your neighbours", "Bubbles are the local currency"] },
+];
+
+/** Fallbacks for the 🎲 twist button when no model call is possible. */
+export const TWIST_IDEAS = [
+  "Gravity is optional on Tuesdays, and today is Tuesday",
+  "Everyone can hear each other's thoughts",
+  "All birds are government drones",
+  "It has been raining jelly beans all morning",
+  "The moon is made of cheese and is slowly getting smaller",
+  "Every lie told makes your nose grow",
+  "Cats can talk but choose not to",
+  "The internet was shut down an hour ago",
+  "Everyone just won the lottery",
+  "Time runs backwards after midnight",
+  "Shoes have been outlawed",
+  "A giant octopus is watching through the window",
+];
+
+export function twistMessages(subject: string, existing: string[]): ChatMessage[] {
+  return [
+    {
+      role: "system",
+      content:
+        "You invent surprising, funny 'world facts' that change the world a conversation takes place in. Reply with ONE fact only, under 15 words, no quotes, no explanation.",
+    },
+    {
+      role: "user",
+      content: `The conversation is about: "${subject || "anything"}".${existing.length ? ` Facts already true: ${existing.join("; ")}.` : ""} Invent one new world fact that would make it more fun.`,
+    },
+  ];
+}
+
+export function cleanTwist(raw: string): string {
+  return raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)[0]
+    ?.replace(/^[-*•\d.)\s]+/, "")
+    .replace(/^["'“”]+|["'“”]+$/g, "")
+    .replace(/^(world )?fact:\s*/i, "")
+    .trim() ?? "";
+}
+
+function factLines(facts: SceneFact[], speakerId: string): { shared: string[]; secret: string[] } {
+  return {
+    shared: facts.filter((f) => f.scope === "all").map((f) => f.text.trim()),
+    secret: facts.filter((f) => f.scope === speakerId).map((f) => f.text.trim()),
+  };
+}
+
 export function systemPrompt(
   speakers: Speaker[],
   index: number,
   settings: ConversationSettings,
   summary: string,
+  facts: SceneFact[] = [],
 ): string {
   const me = speakers[index];
   const others = speakers.filter((_, i) => i !== index);
@@ -150,6 +214,21 @@ export function systemPrompt(
     "- Don't open with compliments like \"great point\" or \"I love that\".",
     "- Stay in character.",
   ];
+  const { shared, secret } = factLines(facts, me.id);
+  if (shared.length) {
+    lines.push(
+      "",
+      "World facts. These are absolutely true in this world, even where they contradict real life. Let them shape what you say and believe, but don't just recite them:",
+      ...shared.map((f) => `- ${f}`),
+    );
+  }
+  if (secret.length) {
+    lines.push(
+      "",
+      "Secrets only you know. The others don't know these. Let them influence you; hint at them if it's fun, but don't simply announce them:",
+      ...secret.map((f) => `- ${f}`),
+    );
+  }
   if (summary) lines.push("", `Summary of the earlier conversation: ${summary}`);
   return lines.join("\n");
 }
@@ -162,10 +241,11 @@ export function buildMessages(
   history: Turn[],
   summary: string,
   hiddenNote: string,
+  facts: SceneFact[] = [],
 ): ChatMessage[] {
   const me = speakers[index];
   const nameOf = (id: string) => speakers.find((s) => s.id === id)?.name ?? "Moderator";
-  const msgs: ChatMessage[] = [{ role: "system", content: systemPrompt(speakers, index, settings, summary) }];
+  const msgs: ChatMessage[] = [{ role: "system", content: systemPrompt(speakers, index, settings, summary, facts) }];
   const push = (role: "user" | "assistant", content: string) => {
     const last = msgs[msgs.length - 1];
     if (last.role === role) last.content += "\n\n" + content;
@@ -177,7 +257,7 @@ export function buildMessages(
     `[Moderator]: Welcome! Today's subject: "${settings.subject || "anything you like"}". ${first === me.name ? "You" : first} will speak first.`,
   );
   for (const t of history) {
-    if (!t.text.trim()) continue;
+    if (!t.text.trim() || t.kind === "scene") continue;
     if (t.kind === "note") push("user", `[Moderator]: ${t.text}`);
     else if (t.speakerId === me.id) push("assistant", t.text);
     else push("user", `[${nameOf(t.speakerId)}]: ${t.text}`);
@@ -197,13 +277,13 @@ export function pickNudge(
   lineIndex: number,
   isFinalRound: boolean,
 ): string {
-  const latest = history[history.length - 1];
+  const latest = [...history].reverse().find((t) => t.kind !== "scene");
   if (latest?.kind === "note" && latest.speakerId === "moderator") {
     return `The moderator just threw in: "${latest.text}". React to that directly and in character, and weave it into what you say.`;
   }
   if (isFinalRound) return "This is your final turn. Wrap up with a memorable closing line.";
   if (!settings.antiLoop || lineIndex < 2) return "";
-  const lines = history.filter((t) => t.kind !== "note");
+  const lines = history.filter((t) => (t.kind ?? "line") === "line");
   const last = lines[lines.length - 1]?.text ?? "";
   const mode = modeById(settings.mode);
   if (AGREEMENT.test(last) && settings.mode !== "improv") {

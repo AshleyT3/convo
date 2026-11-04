@@ -28,12 +28,19 @@ export function Transcript({ turns, speakers, generatingId, speechOn, empty }: P
   };
 
   const n = Math.max(1, speakers.length);
-  const lastLine = [...turns].reverse().find((t) => t.kind !== "note");
+  const lastLine = [...turns].reverse().find((t) => (t.kind ?? "line") === "line");
 
   return (
     <div className="transcript" ref={box} onScroll={onScroll} aria-live="polite">
       {!turns.length && <div className="empty">{empty}</div>}
       {turns.map((t) => {
+        if (t.kind === "scene") {
+          return (
+            <div key={t.id} className="scene-marker">
+              {t.text}
+            </div>
+          );
+        }
         if (t.kind === "note") {
           return (
             <div key={t.id} className="note">

@@ -15,7 +15,17 @@ import {
   summaryMessages,
 } from "./prompts.ts";
 import { cleanReply, mightBeNamePrefix, takeSentences } from "./text.ts";
-import type { ConversationSettings, RunStatus, Speaker, Turn } from "./types.ts";
+import { factActive, type ConversationSettings, type RunStatus, type SceneFact, type Speaker, type Turn } from "./types.ts";
+
+/** A one-time hidden message delivered to each listed speaker on their next turn. */
+interface PendingNote {
+  text: string;
+  remaining: Set<string>;
+  /** Urgent notes (news, retcons) replace the usual nudge; reminders don't. */
+  urgent: boolean;
+}
+
+export type SceneEventStyle = "news" | "retcon" | "reminder";
 
 /** What the engine needs from a voice layer. `speak` resolves when done or cancelled. */
 export interface Speech {
@@ -56,6 +66,8 @@ export class Conversation {
   private pauseWaiters: (() => void)[] = [];
   private speechChain: Promise<void> = Promise.resolve();
   private emitQueued = false;
+  private facts: SceneFact[] = [];
+  private pendingNotes: PendingNote[] = [];
 
   private backend: LlmBackend;
   private readonly speech: Speech;
@@ -78,9 +90,47 @@ export class Conversation {
   }
 
   /** Live-update personas/voices/settings; takes effect from the next turn. */
-  update(speakers: Speaker[], settings: ConversationSettings) {
+  update(speakers: Speaker[], settings: ConversationSettings, facts?: SceneFact[]) {
     this.speakers = speakers;
     this.settings = settings;
+    if (facts) this.facts = facts;
+  }
+
+  /** Number of speaker lines so far (timed facts count against this). */
+  lineCount(): number {
+    return this.lines().length;
+  }
+
+  /**
+   * Tells speakers about a scene change on their next turn (once each).
+   * scope: "all" or a speaker id (a secret). Past lines are never rewritten.
+   */
+  sceneEvent(text: string, scope: string, style: SceneEventStyle) {
+    const ids = scope === "all" ? this.speakers.map((s) => s.id) : [scope];
+    const t = text.trim();
+    if (!t || !ids.length) return;
+    const msg =
+      style === "news"
+        ? scope === "all"
+          ? `Breaking news, just now: "${t}". This is now true. React to it.`
+          : `Something only you just found out: "${t}". This is now true. Let it change how you act, without simply announcing it.`
+        : style === "retcon"
+          ? `Correction: "${t}" is NOT true any more (it never really was). Adjust to that.`
+          : `Remember this new fact about the world: "${t}".`;
+    this.pendingNotes.push({ text: msg, remaining: new Set(ids), urgent: style !== "reminder" });
+  }
+
+  /** Display-only line in the transcript (never sent to the model). */
+  marker(text: string) {
+    this.turns.push({ id: uid(), speakerId: "scene", text, spokenChars: text.length, done: true, kind: "scene" });
+    this.emit();
+  }
+
+  private takeNotesFor(speakerId: string): { text: string; urgent: boolean } {
+    const mine = this.pendingNotes.filter((n) => n.remaining.has(speakerId));
+    for (const n of mine) n.remaining.delete(speakerId);
+    this.pendingNotes = this.pendingNotes.filter((n) => n.remaining.size > 0);
+    return { text: mine.map((n) => n.text).join(" "), urgent: mine.some((n) => n.urgent) };
   }
 
   /** Swap the model (e.g. user changed settings) before continuing. */
@@ -166,7 +216,7 @@ export class Conversation {
   // ---------------------------------------------------------------- internals
 
   private lines(): Turn[] {
-    return this.turns.filter((t) => t.kind !== "note");
+    return this.turns.filter((t) => (t.kind ?? "line") === "line");
   }
 
   private async loop() {
@@ -203,8 +253,13 @@ export class Conversation {
     const remaining = this.targetLines - lineIndex;
     const isFinalRound = Number.isFinite(this.targetLines) && remaining <= this.speakers.length && s.turnLimit > 0;
     const visible = this.turnsSinceSummary();
-    const note = pickNudge(s, this.turns, lineIndex, isFinalRound);
-    const messages = buildMessages(this.speakers, index, s, visible, this.summary, note);
+    const nudge = pickNudge(s, this.turns, lineIndex, isFinalRound);
+    const scene = this.takeNotesFor(speaker.id);
+    // Scene news/retcons take priority over random nudges (but keep curveballs and closings).
+    const keepNudge = !scene.urgent || /moderator just threw in|final turn/i.test(nudge);
+    const note = [scene.text, keepNudge ? nudge : ""].filter(Boolean).join(" ");
+    const facts = this.facts.filter((f) => factActive(f, lineIndex));
+    const messages = buildMessages(this.speakers, index, s, visible, this.summary, note, facts);
     const names = this.speakers.map((sp) => sp.name);
     const stop = this.speakers
       .filter((_, i) => i !== index)

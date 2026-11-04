@@ -21,6 +21,13 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - **Referee (optional):** every N lines, a JSON verdict `{concluded, reason, winner}`. A conclusion ends the show.
 - **Pipelining:** replies stream, are cut into sentences and queued to speech. Turn N+1 is generated while turn N is spoken, but never more than one turn ahead.
 
+## Scene (living world facts)
+- `SceneFact {text, enabled, scope: "all" | speakerId, expiresAt?}` lives in the App and is persisted. It's passed to the engine on every change.
+- **Each turn:** active facts are rendered into the system prompt. Shared ones go under "World facts"; facts scoped to the current speaker go under "Secrets only you know".
+- **One-time events** (announce, retcon, reminder for a newly added quiet fact) are queued per speaker and delivered once, inside that speaker's next hidden note. Urgent ones replace the random nudge.
+- **Transcript markers** use `kind: "scene"` turns, which are display-only and never sent to the model.
+- **Past output is immutable:** facts only affect future prompts.
+
 ## Future ideas (not in v1)
 - Game rules: "win by civil agreement", scoring, "force endless" constructs.
 - More than two speakers, and floating speaker windows.

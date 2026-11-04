@@ -13,6 +13,25 @@ export interface Speaker {
   color: string; // accent colour for the UI
 }
 
+/**
+ * A "scene attribute": a living fact about the world the speakers are in.
+ * Read fresh on every turn, so adding/removing/toggling takes effect next turn.
+ * Past lines are never rewritten: what was said stays said.
+ */
+export interface SceneFact {
+  id: string;
+  text: string;
+  enabled: boolean;
+  /** "all" = everyone knows it; otherwise a speaker id = that speaker's secret. */
+  scope: string;
+  /** Line index at which the fact expires (timed facts). Undefined = permanent. */
+  expiresAt?: number;
+}
+
+export function factActive(f: SceneFact, lineCount: number): boolean {
+  return f.enabled && f.text.trim() !== "" && (f.expiresAt === undefined || lineCount < f.expiresAt);
+}
+
 export type ModeId = "debate" | "collaborate" | "chat" | "improv" | "interview";
 
 export type ReplyLength = "short" | "medium" | "long";
@@ -27,8 +46,11 @@ export interface Turn {
   /** [start, end) of the sentence being spoken right now, if any. */
   speaking?: [number, number];
   done: boolean;
-  /** System/moderator notes (e.g. referee verdicts) instead of a speaker line. */
-  kind?: "line" | "note";
+  /**
+   * "line" = a speaker's line; "note" = moderator/referee text the speakers also see;
+   * "scene" = display-only marker (fact added/removed), never sent to the model.
+   */
+  kind?: "line" | "note" | "scene";
 }
 
 export interface ConversationSettings {

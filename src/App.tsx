@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Conversation, type ConversationState } from "./engine/conversation.ts";
-import { MODES, SUBJECT_IDEAS, modeById } from "./engine/prompts.ts";
-import type { ConversationSettings, ModeId, Speaker } from "./engine/types.ts";
+import { MODES, SCENE_PRESETS, SUBJECT_IDEAS, TWIST_IDEAS, cleanTwist, modeById, twistMessages } from "./engine/prompts.ts";
+import type { ConversationSettings, ModeId, SceneFact, Speaker } from "./engine/types.ts";
+import { complete } from "./llm/types.ts";
+import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
 import { WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
@@ -31,6 +33,8 @@ export function App() {
   const [browser, setBrowser] = useState<BrowserLoad>({ state: "idle", progress: 0, text: "" });
   const [showSettings, setShowSettings] = useState(false);
   const [curveball, setCurveball] = useState("");
+  const [facts, setFacts] = useState<SceneFact[]>(() => loadSaved<SceneFact[]>("facts", []));
+  const [twisting, setTwisting] = useState(false);
 
   const convo = useRef<Conversation | null>(null);
   const speech = useMemo(() => new BrowserSpeech(), []);
@@ -39,9 +43,10 @@ export function App() {
   useEffect(() => save("speakers", speakers), [speakers]);
   useEffect(() => save("settings", settings), [settings]);
   useEffect(() => save("backend", backend), [backend]);
+  useEffect(() => save("facts", facts), [facts]);
 
   // Live edits apply from the next turn.
-  useEffect(() => convo.current?.update(speakers, settings), [speakers, settings]);
+  useEffect(() => convo.current?.update(speakers, settings, facts), [speakers, settings, facts]);
 
   // Voices: load, then give each speaker a distinct default if theirs is missing.
   useEffect(() => {
@@ -136,13 +141,120 @@ export function App() {
       setShowSettings(false);
     }
     speech.cancel();
+    let f = facts;
     if (fresh || !convo.current) {
+      // Timed facts carry their remaining lines into the new conversation.
+      const used = convo.current?.lineCount() ?? 0;
+      f = facts
+        .filter((x) => x.expiresAt === undefined || x.expiresAt > used)
+        .map((x) => (x.expiresAt === undefined ? x : { ...x, expiresAt: x.expiresAt - used }));
+      setFacts(f);
       convo.current?.stop();
       convo.current = new Conversation(makeBackend(), speech, speakers, s, setState);
     }
     convo.current.setBackend(makeBackend());
-    convo.current.update(speakers, s);
+    convo.current.update(speakers, s, f);
     void convo.current.start();
+  };
+
+  // ---------------------------------------------------------------- scene facts
+
+  const lineCount = state.turns.filter((t) => (t.kind ?? "line") === "line").length;
+  const live = state.turns.length > 0 && !!convo.current;
+  const whoKnows = (scope: string) =>
+    scope === "all" ? "" : ` (only ${speakers.find((x) => x.id === scope)?.name ?? "?"} knows)`;
+
+  const applyFacts = (next: SceneFact[]) => {
+    setFacts(next);
+    convo.current?.update(speakers, settings, next); // don't wait for the effect
+  };
+
+  const addFact = (n: NewFact) => {
+    const used = convo.current?.lineCount() ?? 0;
+    const fact: SceneFact = {
+      id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      text: n.text,
+      enabled: true,
+      scope: n.scope,
+      expiresAt: n.lines > 0 ? used + n.lines : undefined,
+    };
+    applyFacts([...facts, fact]);
+    if (live) {
+      const c = convo.current!;
+      c.marker(`${n.announce ? "📢 Breaking news" : "🌍 New fact"}${whoKnows(n.scope)}: ${n.text}${n.lines ? ` · for ${n.lines} lines` : ""}`);
+      c.sceneEvent(n.text, n.scope, n.announce ? "news" : "reminder");
+    }
+  };
+
+  const toggleFact = (id: string) => {
+    const f = facts.find((x) => x.id === id);
+    if (!f) return;
+    applyFacts(facts.map((x) => (x.id === id ? { ...x, enabled: !x.enabled } : x)));
+    if (live) {
+      convo.current!.marker(`🌍 Fact switched ${f.enabled ? "off" : "on"}: ${f.text}`);
+      if (!f.enabled) convo.current!.sceneEvent(f.text, f.scope, "reminder");
+    }
+  };
+
+  const removeFact = (id: string, retcon: boolean) => {
+    const f = facts.find((x) => x.id === id);
+    if (!f) return;
+    applyFacts(facts.filter((x) => x.id !== id));
+    if (live) {
+      convo.current!.marker(`${retcon ? "↩ Retcon, no longer true" : "🌍 Fact removed"}: ${f.text}`);
+      if (retcon) convo.current!.sceneEvent(f.text, f.scope, "retcon");
+    }
+  };
+
+  const addPreset = (name: string) => {
+    const preset = SCENE_PRESETS.find((x) => x.name === name);
+    if (!preset) return;
+    const have = new Set(facts.map((x) => x.text.toLowerCase()));
+    const fresh = preset.facts.filter((t) => !have.has(t.toLowerCase()));
+    const added: SceneFact[] = fresh.map((text, i) => ({
+      id: `f${Date.now().toString(36)}${i}`,
+      text,
+      enabled: true,
+      scope: "all",
+    }));
+    applyFacts([...facts, ...added]);
+    if (live && added.length) {
+      convo.current!.marker(`🎭 Scene: ${preset.name}`);
+      convo.current!.sceneEvent(`The scene has changed: ${fresh.join("; ")}`, "all", "news");
+    }
+  };
+
+  const clearFacts = () => {
+    applyFacts([]);
+    if (live) convo.current!.marker("🌍 Scene cleared");
+  };
+
+  const twist = async (opts: Omit<NewFact, "text">) => {
+    const existing = facts.map((f) => f.text);
+    const fallback = () => {
+      const pool = TWIST_IDEAS.filter((t) => !existing.includes(t));
+      return pool[Math.floor(Math.random() * pool.length)] ?? TWIST_IDEAS[0];
+    };
+    let text = "";
+    // The in-browser engine can only do one thing at a time; don't interrupt a running show.
+    const canAsk = backend.kind === "server" ? server.state === "ok" : loadedBrowserModel() === backend.browserModel && !running;
+    if (canAsk) {
+      setTwisting(true);
+      try {
+        const raw = await complete(makeBackend(), twistMessages(settings.subject, existing), {
+          temperature: 1.1,
+          maxTokens: 500,
+          signal: AbortSignal.timeout(20000),
+        });
+        text = cleanTwist(raw);
+      } catch {
+        /* fall back below */
+      } finally {
+        setTwisting(false);
+      }
+    }
+    if (!text || text.length > 140) text = fallback();
+    addFact({ ...opts, text });
   };
 
   const stop = () => convo.current?.stop();
@@ -166,7 +278,8 @@ export function App() {
 
   const resetAll = () => {
     clear();
-    ["speakers", "settings", "backend"].forEach(forget);
+    ["speakers", "settings", "backend", "facts"].forEach(forget);
+    setFacts([]);
     setSpeakers(DEFAULT_SPEAKERS.map((s, i) => ({ ...s, voiceURI: defaultVoices(voices, DEFAULT_SPEAKERS.length)[i] ?? "" })));
     setSettings(DEFAULT_SETTINGS);
     setBackend(DEFAULT_BACKEND);
@@ -282,6 +395,20 @@ export function App() {
         </div>
       </div>
 
+      <ScenePanel
+        facts={facts}
+        speakers={speakers}
+        lineCount={lineCount}
+        live={live}
+        twisting={twisting}
+        onAdd={addFact}
+        onToggle={toggleFact}
+        onRemove={removeFact}
+        onTwist={(o) => void twist(o)}
+        onPreset={addPreset}
+        onClear={clearFacts}
+      />
+
       <main className="stage">
         <div className="cards" style={{ gridTemplateColumns: `repeat(${speakers.length}, 1fr)` }}>
           {speakers.map((sp, i) => (
@@ -326,6 +453,17 @@ export function App() {
             onKeyDown={(e) => e.key === "Enter" && sendCurveball()}
             aria-label="Moderator message"
           />
+          <button
+            className="icon-btn"
+            title="Pin it: make this a lasting scene fact (announced) instead of a one-time remark"
+            disabled={!curveball.trim()}
+            onClick={() => {
+              addFact({ text: curveball.trim(), scope: "all", announce: true, lines: 0 });
+              setCurveball("");
+            }}
+          >
+            📌
+          </button>
           <span className="stats">
             {state.status === "paused" ? "paused · space to resume" : running ? "space = pause · esc = stop" : ""}
             {state.lastWordsPerSec ? ` · ${state.lastWordsPerSec.toFixed(0)} words/s` : ""}
