@@ -8,6 +8,8 @@ export interface BackendSettings {
   model: string;
   apiKey: string;
   browserModel: string;
+  /** True once the user picked a backend themselves; until then we auto-pick. */
+  chosen: boolean;
 }
 
 export const DEFAULT_SPEAKERS: Speaker[] = [
@@ -49,6 +51,7 @@ export const DEFAULT_BACKEND: BackendSettings = {
   model: "",
   apiKey: "",
   browserModel: "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+  chosen: false,
 };
 
 // Persistence is a convenience only: everything works if storage is unavailable.

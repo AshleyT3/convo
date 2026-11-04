@@ -3,6 +3,7 @@ import type { ConversationSettings } from "../engine/types.ts";
 import { SERVER_PRESETS } from "../llm/openaiCompat.ts";
 import { BROWSER_MODELS, isBrowserModelCached, webGpuSupported } from "../llm/webllm.ts";
 import type { BackendSettings } from "../state/defaults.ts";
+import type { GpuInfo } from "../state/device.ts";
 
 export interface ServerStatus {
   state: "unknown" | "checking" | "ok" | "down";
@@ -27,6 +28,8 @@ interface Props {
   onLoadBrowser: () => void;
   onResetAll: () => void;
   onClose: () => void;
+  mobile: boolean;
+  gpu: GpuInfo | null;
 }
 
 export function SettingsPanel(p: Props) {
@@ -57,8 +60,17 @@ export function SettingsPanel(p: Props) {
         <h3>Where the AI runs</h3>
         <div className="choice-cards">
           <button className={`choice ${b.kind === "server" ? "on" : ""}`} onClick={() => setB({ kind: "server" })}>
-            <b>Local model server</b>
-            <small>llama.cpp, Ollama or LM Studio on your computer. Bigger, smarter models.</small>
+            {p.mobile ? (
+              <>
+                <b>Model server on your network</b>
+                <small>Advanced: a computer on your Wi-Fi running llama.cpp, Ollama or LM Studio.</small>
+              </>
+            ) : (
+              <>
+                <b>Local model server</b>
+                <small>llama.cpp, Ollama or LM Studio on your computer. Bigger, smarter models.</small>
+              </>
+            )}
           </button>
           <button
             className={`choice ${b.kind === "browser" ? "on" : ""}`}
@@ -73,6 +85,14 @@ export function SettingsPanel(p: Props) {
 
         {b.kind === "server" ? (
           <div className="group">
+            {p.mobile && (
+              <p className="muted small">
+                A phone can't run the server itself. Start it on a computer with <code>--host 0.0.0.0</code> (Ollama:{" "}
+                <code>OLLAMA_HOST=0.0.0.0</code>) and enter that computer's address below, e.g.{" "}
+                <code>http://192.168.1.20:8080/v1</code>. This only works if this page is also opened from your own network,
+                not from a public website.
+              </p>
+            )}
             <div className="chips">
               {SERVER_PRESETS.map((x) => (
                 <button key={x.baseUrl} className={`chip ${b.baseUrl === x.baseUrl ? "on" : ""}`} onClick={() => setB({ baseUrl: x.baseUrl, model: "" })}>
@@ -115,14 +135,34 @@ export function SettingsPanel(p: Props) {
         ) : (
           <div className="group">
             <div className="model-list">
-              {BROWSER_MODELS.map((m) => (
-                <label key={m.id} className={`model ${b.browserModel === m.id ? "on" : ""}`}>
-                  <input type="radio" name="bm" checked={b.browserModel === m.id} onChange={() => setB({ browserModel: m.id })} />
-                  <span className="m-name">{m.label}</span>
-                  <span className="m-note">{m.note}</span>
-                  <span className="m-size">{cached[m.id] ? "downloaded" : `${m.sizeGB} GB`}</span>
-                </label>
-              ))}
+              {[...BROWSER_MODELS]
+                // On phones, list the phone-friendly models first.
+                .sort((x, y) => (p.mobile ? Number(!!y.phone) - Number(!!x.phone) : 0))
+                .map((m) => {
+                  const unsupported = !!m.needsF16 && p.gpu !== null && !p.gpu.f16;
+                  const note = unsupported
+                    ? "Not supported by this device's GPU"
+                    : p.mobile && !m.phone
+                      ? `${m.note} · probably too big for a phone`
+                      : m.note;
+                  return (
+                    <label key={m.id} className={`model ${b.browserModel === m.id ? "on" : ""} ${unsupported ? "disabled" : ""}`}>
+                      <input
+                        type="radio"
+                        name="bm"
+                        checked={b.browserModel === m.id}
+                        disabled={unsupported}
+                        onChange={() => setB({ browserModel: m.id })}
+                      />
+                      <span className="m-name">
+                        {m.label}
+                        {m.phone && <span className="m-tag">📱 phone-friendly</span>}
+                      </span>
+                      <span className="m-note">{note}</span>
+                      <span className="m-size">{cached[m.id] ? "downloaded" : `${m.sizeGB} GB`}</span>
+                    </label>
+                  );
+                })}
             </div>
             <div className="row-actions">
               <button className="btn" onClick={p.onLoadBrowser} disabled={p.browser.state === "loading"}>

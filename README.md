@@ -2,7 +2,7 @@
 
 **Two AIs. One topic. Out loud.**
 
-Pick a subject, press **Start**, and two AI characters debate, collaborate, chat or improvise with each other, each speaking in its own voice. It's free and private: the AI runs on your own computer, and the voices are the ones built into your browser and operating system.
+Pick a subject, press **Start**, and two AI characters debate, collaborate, chat or improvise with each other, each speaking in its own voice. It's free: the AI runs on your own device, and the voices are the ones built into your browser and operating system. No accounts, no API keys, no server costs.
 
 It's a novelty, and also a neat way to *see* what language models do: the same model weights, prompted from two seats, playing off each other one turn at a time.
 
@@ -15,7 +15,11 @@ It's a novelty, and also a neat way to *see* what language models do: the same m
 | Needs | Chrome or Edge with WebGPU | Any modern browser |
 | Feel | Quick, often charmingly naive | Smarter, sharper banter |
 
-Open **⚙ Settings** in the app to choose.
+Open **⚙ Settings** in the app to choose. On first visit Convo picks for you:
+- **Desktop:** it tries a local server first, then falls back to in-browser AI.
+- **Phones:** in-browser with a small model. A phone can't run a model server itself, but it can use one on a computer on the same Wi-Fi (advanced; see Settings).
+
+In-browser models range from SmolLM2 360M (tiny, silly) through Llama 3.2 3B (the default) to Llama 3.1 8B, Qwen3 8B and Gemma 2 9B, which need a strong GPU.
 
 ### Using a local model server
 - **Ollama:** install from ollama.com and run `ollama pull llama3.2`. In Convo, choose the *Ollama* preset and pick the model.
@@ -73,5 +77,14 @@ src/components/  UI
 ## Deploy (free static hosting)
 `npm run build` produces a fully static `dist/` folder. On **Cloudflare Pages**, set the build command to `npm run build` and the output directory to `dist`. Any static host works.
 
+## Privacy
+The conversation is generated on your device: in your browser, or by the model server you point it at. Convo has no backend and collects nothing.
+- In-browser models are downloaded once from their public model hosts, then cached by your browser.
+- **Voices:** local system voices run on your device. "Online" or "Natural" voices (Microsoft Edge) and Google voices (Chrome) are cloud voices: the browser sends the spoken text to Microsoft or Google to synthesise it. Pick a local voice if that matters to you.
+
+## Credits
+- [WebLLM](https://github.com/mlc-ai/web-llm) (Apache-2.0) for in-browser models, [React](https://react.dev) and [Vite](https://vite.dev).
+- Models are made by their publishers (Meta Llama, Qwen, Google Gemma, Microsoft Phi, Hugging Face SmolLM) and are subject to their own licences. Convo doesn't distribute any model weights.
+
 ## License
-MIT
+MIT. See [LICENSE](LICENSE).

@@ -2,25 +2,36 @@
 // WebGPU (WebLLM). The first run downloads the model (cached afterwards).
 // The library is imported lazily so people using a local server never load it.
 
-import type { ChatMessage, ChatOptions, LlmBackend } from "./types.ts";
+import { ThinkStripper, type ChatMessage, type ChatOptions, type LlmBackend } from "./types.ts";
 
 export interface BrowserModel {
   id: string;
   label: string;
   sizeGB: number;
   note: string;
+  /** Small enough to be a reasonable bet on a phone. */
+  phone?: boolean;
+  /** Needs the WebGPU "shader-f16" feature. */
+  needsF16?: boolean;
+  /** A "thinking" model: thinking is switched off and stripped. */
+  thinking?: boolean;
 }
 
 export const BROWSER_MODELS: BrowserModel[] = [
   { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B", sizeGB: 2.3, note: "Recommended: good balance" },
   { id: "Qwen2.5-3B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 3B", sizeGB: 2.5, note: "Good balance" },
   { id: "gemma-2-2b-it-q4f16_1-MLC", label: "Gemma 2 2B", sizeGB: 1.9, note: "Chatty, light" },
-  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B", sizeGB: 0.9, note: "Fast and a bit naive" },
-  { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", label: "SmolLM2 360M", sizeGB: 0.4, note: "Tiny. Expect glorious nonsense" },
+  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B", sizeGB: 0.9, note: "Fast and a bit naive", phone: true },
+  { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", label: "SmolLM2 360M", sizeGB: 0.4, note: "Tiny. Expect glorious nonsense", phone: true },
   { id: "Phi-3.5-mini-instruct-q4f16_1-MLC", label: "Phi 3.5 mini", sizeGB: 3.7, note: "Smarter, heavier" },
-  { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", label: "Llama 3.1 8B", sizeGB: 5.0, note: "Best quality, needs a strong GPU" },
-  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 7B", sizeGB: 5.1, note: "Best quality, needs a strong GPU" },
+  { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", label: "Llama 3.1 8B", sizeGB: 5.0, note: "Most robust large model. Strong GPU" },
+  { id: "Qwen3-8B-q4f16_1-MLC", label: "Qwen3 8B", sizeGB: 5.7, note: "Newest and sharpest. Strong GPU", thinking: true },
+  { id: "gemma-2-9b-it-q4f16_1-MLC", label: "Gemma 2 9B", sizeGB: 6.4, note: "Largest. Great banter. Strong GPU", needsF16: true },
+  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 7B", sizeGB: 5.1, note: "Large, solid. Strong GPU" },
 ];
+
+export const DEFAULT_DESKTOP_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+export const DEFAULT_PHONE_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
 
 export const webGpuSupported = typeof navigator !== "undefined" && "gpu" in navigator;
 
@@ -97,6 +108,8 @@ export class WebLlmBackend implements LlmBackend {
     const onAbort = () => e.interruptGenerate();
     opts.signal?.addEventListener("abort", onAbort);
     let finished = false;
+    const thinking = BROWSER_MODELS.find((m) => m.id === this.id)?.thinking;
+    const strip = new ThinkStripper();
     try {
       const stream = await e.chat.completions.create({
         messages: adaptMessages(this.id, messages),
@@ -104,10 +117,11 @@ export class WebLlmBackend implements LlmBackend {
         temperature: opts.temperature ?? 0.9,
         max_tokens: Math.min(opts.maxTokens ?? 400, 600),
         stop: opts.stop?.slice(0, 4),
+        ...(thinking ? { extra_body: { enable_thinking: false } } : {}),
       });
       for await (const chunk of stream) {
         if (opts.signal?.aborted) return;
-        const piece = chunk.choices[0]?.delta?.content;
+        const piece = strip.push(chunk.choices[0]?.delta?.content ?? "");
         if (piece) yield piece;
       }
       finished = true;

@@ -6,7 +6,8 @@ import { complete } from "./llm/types.ts";
 import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
-import { WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
+import { DEFAULT_PHONE_MODEL, WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
+import { getGpuInfo, isMobileDevice, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
 import { Transcript } from "./components/Transcript.tsx";
@@ -22,11 +23,19 @@ import {
 import { BrowserSpeech, defaultVoices, loadVoices, onVoicesChanged, speechSupported, type VoiceInfo } from "./voice/browserSpeech.ts";
 
 const EMPTY: ConversationState = { status: "idle", turns: [], summary: "" };
+const mobile = isMobileDevice();
 
 export function App() {
   const [speakers, setSpeakers] = useState<Speaker[]>(() => loadSaved("speakers", DEFAULT_SPEAKERS));
   const [settings, setSettings] = useState<ConversationSettings>(() => loadSaved("settings", DEFAULT_SETTINGS));
-  const [backend, setBackend] = useState<BackendSettings>(() => loadSaved("backend", DEFAULT_BACKEND));
+  const [backend, setBackend] = useState<BackendSettings>(() => {
+    const saved = loadSaved("backend", DEFAULT_BACKEND);
+    // Phones can't run a model server themselves: start them in the browser with a small model.
+    if (!saved.chosen && mobile) return { ...saved, kind: "browser", browserModel: DEFAULT_PHONE_MODEL };
+    return saved;
+  });
+  const [gpu, setGpu] = useState<GpuInfo | null>(null);
+  const [notice, setNotice] = useState("");
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
   const [state, setState] = useState<ConversationState>(EMPTY);
   const [server, setServer] = useState<ServerStatus>({ state: "unknown", models: [], message: "" });
@@ -102,6 +111,17 @@ export function App() {
     if (backend.kind === "server") void testServer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backend.kind, backend.baseUrl]);
+
+  useEffect(() => {
+    void getGpuInfo().then(setGpu);
+  }, []);
+
+  // First run on a desktop without a model server: quietly fall back to in-browser AI.
+  useEffect(() => {
+    if (backend.chosen || backend.kind !== "server" || server.state !== "down" || !gpu?.webgpu) return;
+    setBackend((b) => ({ ...b, kind: "browser" }));
+    setNotice("No local model server found, so Convo will run a small AI right in your browser (a one-time download). Open ⚙ to change.");
+  }, [backend.chosen, backend.kind, server.state, gpu]);
 
   const loadBrowser = useCallback(async (): Promise<boolean> => {
     setBrowser({ state: "loading", progress: 0, text: "Starting…" });
@@ -282,7 +302,7 @@ export function App() {
     setFacts([]);
     setSpeakers(DEFAULT_SPEAKERS.map((s, i) => ({ ...s, voiceURI: defaultVoices(voices, DEFAULT_SPEAKERS.length)[i] ?? "" })));
     setSettings(DEFAULT_SETTINGS);
-    setBackend(DEFAULT_BACKEND);
+    setBackend(mobile ? { ...DEFAULT_BACKEND, kind: "browser", browserModel: DEFAULT_PHONE_MODEL } : DEFAULT_BACKEND);
   };
 
   // Keyboard: Space = pause/resume (when not typing), Esc = stop.
@@ -316,15 +336,26 @@ export function App() {
       : `${backend.model || "local model"} · ${backend.baseUrl.replace(/^https?:\/\//, "").replace(/\/v1\/?$/, "")}`;
   const backendOk = backend.kind === "browser" ? browser.state === "ready" || webGpuSupported : server.state === "ok";
 
-  const problem =
-    backend.kind === "server" && server.state === "down"
+  const cantRunHere = gpu !== null && !gpu.webgpu && (backend.kind === "browser" || server.state === "down");
+  const problem = cantRunHere ? (
+    <div className="banner">
+      <span>
+        <b>This device can't run AI on its own.</b> The browser doesn't support WebGPU
+        {backend.kind === "server" ? " and no model server answered" : ""}. Try a recent Chrome or Edge on a computer
+        {mobile ? "" : ", or run Ollama / llama.cpp and pick it in ⚙ Settings"}.
+      </span>
+      <span className="banner-actions">
+        <button className="btn small ghost" onClick={() => setShowSettings(true)}>Settings</button>
+      </span>
+    </div>
+  ) : backend.kind === "server" && server.state === "down" && (backend.chosen || !gpu?.webgpu)
       ? (
           <div className="banner">
             <span>Can't reach a local model server at <code>{backend.baseUrl}</code>.</span>
             <span className="banner-actions">
               <button className="btn small" onClick={() => void testServer()}>Retry</button>
               {webGpuSupported && (
-                <button className="btn small primary" onClick={() => { setBackend({ ...backend, kind: "browser" }); setShowSettings(true); }}>
+                <button className="btn small primary" onClick={() => { setBackend({ ...backend, kind: "browser", chosen: true }); setShowSettings(true); }}>
                   Run in browser instead
                 </button>
               )}
@@ -352,6 +383,15 @@ export function App() {
       </header>
 
       {problem}
+      {notice && !problem && (
+        <div className="banner info">
+          <span>{notice}</span>
+          <span className="banner-actions">
+            <button className="btn small ghost" onClick={() => setShowSettings(true)}>Settings</button>
+            <button className="btn small ghost" onClick={() => setNotice("")} aria-label="Dismiss">✕</button>
+          </span>
+        </div>
+      )}
       {!speechSupported && <div className="banner">This browser can't speak aloud. The conversation will still play as text.</div>}
 
       <div className="controls">
@@ -477,7 +517,12 @@ export function App() {
           settings={settings}
           server={server}
           browser={browser}
-          onBackend={setBackend}
+          onBackend={(b) => {
+            setBackend({ ...b, chosen: true });
+            setNotice("");
+          }}
+          mobile={mobile}
+          gpu={gpu}
           onSettings={setSettings}
           onTestServer={() => void testServer()}
           onLoadBrowser={() => void loadBrowser()}

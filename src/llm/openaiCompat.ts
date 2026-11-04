@@ -2,7 +2,7 @@
 // LM Studio, vLLM, etc. Uses plain fetch + Server-Sent Events, so it works in the
 // browser and in Node.
 
-import type { ChatMessage, ChatOptions, LlmBackend } from "./types.ts";
+import { ThinkStripper, type ChatMessage, type ChatOptions, type LlmBackend } from "./types.ts";
 
 export interface OpenAiCompatConfig {
   baseUrl: string; // e.g. http://127.0.0.1:8080/v1
@@ -68,6 +68,7 @@ export class OpenAiCompatBackend implements LlmBackend {
     }
 
     const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    const strip = new ThinkStripper();
     let buf = "";
     try {
       for (;;) {
@@ -88,7 +89,7 @@ export class OpenAiCompatBackend implements LlmBackend {
             continue;
           }
           if (chunk.error) throw new Error(chunk.error.message ?? "Model server error");
-          const piece = chunk.choices?.[0]?.delta?.content;
+          const piece = strip.push(chunk.choices?.[0]?.delta?.content ?? "");
           if (piece) yield piece;
         }
       }

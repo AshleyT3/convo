@@ -195,6 +195,9 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .model-list { display: flex; flex-direction: column; gap: 6px; }
 .model { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "r n s" "r t s"; column-gap: 10px; align-items: center; border: 1px solid var(--line); background: var(--bg2); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
 .model.on { border-color: var(--brand); }
+.model.disabled { opacity: 0.5; cursor: not-allowed; }
+.m-tag { margin-left: 8px; font-size: 0.7rem; font-weight: 600; color: var(--ok); white-space: nowrap; }
+.banner.info { background: color-mix(in srgb, var(--brand) 12%, var(--panel)); border-color: color-mix(in srgb, var(--brand) 40%, var(--line)); }
 .model input { grid-area: r; accent-color: var(--brand); }
 .m-name { grid-area: n; font-weight: 600; }
 .m-note { grid-area: t; font-size: 0.78rem; color: var(--muted); }
