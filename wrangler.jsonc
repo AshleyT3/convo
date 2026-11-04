@@ -13,6 +13,7 @@
   },
   "workers_dev": false,
   "routes": [
-    { "pattern": "ashleypurringtech.com/convo*", "zone_name": "ashleypurringtech.com" }
+    { "pattern": "ashleypurringtech.com/convo*", "zone_name": "ashleypurringtech.com" },
+    { "pattern": "www.ashleypurringtech.com/convo*", "zone_name": "ashleypurringtech.com" }
   ]
 }
