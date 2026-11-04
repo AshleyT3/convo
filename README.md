@@ -86,5 +86,7 @@ The conversation is generated on your device: in your browser, or by the model s
 - [WebLLM](https://github.com/mlc-ai/web-llm) (Apache-2.0) for in-browser models, [React](https://react.dev) and [Vite](https://vite.dev).
 - Models are made by their publishers (Meta Llama, Qwen, Google Gemma, Microsoft Phi, Hugging Face SmolLM) and are subject to their own licences. Convo doesn't distribute any model weights.
 
+All product names and trademarks are the property of their respective owners and are used here only to identify compatible software. Convo is an independent project, not affiliated with or endorsed by any of them.
+
 ## License
 MIT. See [LICENSE](LICENSE).
