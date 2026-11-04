@@ -62,7 +62,11 @@ function userLang(): string {
 
 function sortVoices(list: VoiceInfo[]): VoiceInfo[] {
   const lang = userLang();
-  const langScore = (v: VoiceInfo) => (v.lang.toLowerCase().startsWith(lang) ? 1 : 0);
+  const full = (typeof navigator !== "undefined" ? navigator.language : "").toLowerCase();
+  const langScore = (v: VoiceInfo) => {
+    const l = v.lang.toLowerCase().replace("_", "-");
+    return l === full ? 2 : l.startsWith(lang) ? 1 : 0;
+  };
   return [...list].sort(
     (a, b) => langScore(b) - langScore(a) || b.quality - a.quality || a.name.localeCompare(b.name),
   );
@@ -90,57 +94,87 @@ export function defaultVoices(voices: VoiceInfo[], count: number): string[] {
   return out;
 }
 
+/**
+ * Pause works the same with every voice: many voices (e.g. Chrome's online
+ * ones) ignore speechSynthesis.pause(), so instead we cut the sentence off and
+ * say it again from the start on resume.
+ */
 export class BrowserSpeech implements Speech {
-  private live = new Set<{ u: SpeechSynthesisUtterance; finish: () => void }>();
+  private current: { text: string; speaker: Speaker; finish: () => void } | null = null;
+  private paused = false;
+  private attempt = 0;
 
   speak(text: string, speaker: Speaker): Promise<void> {
     if (!speechSupported || !text.trim()) return Promise.resolve();
-    const synth = window.speechSynthesis;
+    this.current?.finish();
     return new Promise<void>((resolve) => {
-      const u = new SpeechSynthesisUtterance(text);
-      const voice = synth.getVoices().find((v) => v.voiceURI === speaker.voiceURI);
-      if (voice) {
-        u.voice = voice;
-        u.lang = voice.lang;
-      }
-      u.rate = speaker.rate;
-      u.pitch = speaker.pitch;
-      const started = Date.now();
-      let watchdog: ReturnType<typeof setInterval> | undefined;
-      const entry = {
-        u,
+      this.current = {
+        text,
+        speaker,
         finish: () => {
-          if (watchdog) clearInterval(watchdog);
-          this.live.delete(entry);
+          this.current = null;
+          this.attempt++;
           resolve();
         },
       };
-      // Keep a reference: some browsers drop events for garbage-collected utterances.
-      this.live.add(entry);
-      u.onend = entry.finish;
-      u.onerror = entry.finish;
-      // Some browsers occasionally never fire `end`; don't let the show hang.
-      watchdog = setInterval(() => {
-        if (Date.now() - started > 1500 && !synth.speaking && !synth.pending) entry.finish();
-      }, 500);
-      synth.speak(u);
+      if (!this.paused) this.utter();
     });
   }
 
+  private utter() {
+    const cur = this.current;
+    if (!cur) return;
+    const synth = window.speechSynthesis;
+    const my = ++this.attempt;
+    const u = new SpeechSynthesisUtterance(cur.text);
+    const voice = synth.getVoices().find((v) => v.voiceURI === cur.speaker.voiceURI);
+    if (voice) {
+      u.voice = voice;
+      u.lang = voice.lang;
+    }
+    u.rate = cur.speaker.rate;
+    u.pitch = cur.speaker.pitch;
+    const started = Date.now();
+    const done = () => {
+      clearInterval(watchdog);
+      // Ignore events from an utterance we cut off for pausing.
+      if (my === this.attempt && !this.paused) cur.finish();
+    };
+    u.onend = done;
+    u.onerror = done;
+    // Some browsers occasionally never fire `end`; don't let the show hang.
+    const watchdog = setInterval(() => {
+      if (my !== this.attempt) clearInterval(watchdog);
+      else if (Date.now() - started > 1500 && !synth.speaking && !synth.pending) done();
+    }, 500);
+    keepAlive.add(u); // some browsers drop events for garbage-collected utterances
+    setTimeout(() => keepAlive.delete(u), 60_000);
+    synth.speak(u);
+  }
+
   pause() {
-    if (speechSupported) window.speechSynthesis.pause();
+    if (!speechSupported || this.paused) return;
+    this.paused = true;
+    this.attempt++; // invalidate the in-flight utterance
+    window.speechSynthesis.cancel();
   }
 
   resume() {
-    if (speechSupported) window.speechSynthesis.resume();
+    if (!speechSupported || !this.paused) return;
+    this.paused = false;
+    this.utter();
   }
 
   cancel() {
     if (!speechSupported) return;
+    this.paused = false;
+    this.attempt++;
     window.speechSynthesis.cancel();
-    for (const e of [...this.live]) e.finish();
+    this.current?.finish();
   }
 }
+
+const keepAlive = new Set<SpeechSynthesisUtterance>();
 
 /** Speaks a short sample so users can audition a voice. */
 export function previewVoice(speaker: Speaker) {

@@ -222,12 +222,18 @@ export class Conversation {
     let firstTokenAt = 0;
     let spoken: Promise<void> = this.speechChain;
 
+    // Hard cap: small models often ignore the length instruction and ramble.
+    const maxSentences = { short: 3, medium: 5, long: 8 }[s.replyLength];
+    let sentences = 0;
     const queueSentences = (final: boolean) => {
       for (const [a, b] of takeSentences(turn.text, queued, final)) {
+        if (sentences >= maxSentences) return;
         queued = b;
+        sentences++;
         spoken = this.enqueueSpeech(turn, speaker, a, b);
       }
     };
+    let capped = false;
 
     for await (const piece of this.backend.chat(messages, {
       temperature: s.temperature,
@@ -242,12 +248,20 @@ export class Conversation {
       turn.text = cleanReply(raw, names);
       queueSentences(false);
       this.emit();
+      if (sentences >= maxSentences) {
+        capped = true;
+        break; // ends the stream (and the server-side generation)
+      }
     }
     if (this.stopped) return { spoken };
 
-    turn.text = cleanReply(raw, names).trimEnd();
-    if (!turn.text) turn.text = "…";
-    queueSentences(true);
+    if (capped) {
+      turn.text = turn.text.slice(0, queued).trimEnd();
+    } else {
+      turn.text = cleanReply(raw, names).trimEnd();
+      if (!turn.text) turn.text = "…";
+      queueSentences(true);
+    }
     turn.done = true;
     this.generatingId = undefined;
     const secs = (performance.now() - firstTokenAt) / 1000;

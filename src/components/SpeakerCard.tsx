@@ -45,6 +45,9 @@ export function SpeakerCard({ speaker, voices, speaking, thinking, side, onChang
         <span>Voice</span>
         <select value={speaker.voiceURI} onChange={(e) => set({ voiceURI: e.target.value })}>
           {!voices.length && <option value="">No voices available</option>}
+          {speaker.voiceURI && voices.length > 0 && !voices.some((v) => v.uri === speaker.voiceURI) && (
+            <option value={speaker.voiceURI}>{speaker.voiceURI} (loading…)</option>
+          )}
           {voices.map((v) => (
             <option key={v.uri} value={v.uri}>
               {v.name.replace(/^Microsoft /, "")} · {v.lang}

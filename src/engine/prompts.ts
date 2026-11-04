@@ -183,8 +183,8 @@ export function buildMessages(
     else push("user", `[${nameOf(t.speakerId)}]: ${t.text}`);
   }
   if (msgs[msgs.length - 1].role === "assistant") push("user", "[Moderator]: Please continue.");
-  const note = hiddenNote || "It's your turn.";
-  msgs[msgs.length - 1].content += `\n\n(Private note only ${me.name} can see: ${note} Reply now as ${me.name}.)`;
+  const note = hiddenNote ? `Secret direction for ${me.name}, never say it or mention it: ${hiddenNote} ` : "";
+  msgs[msgs.length - 1].content += `\n\n(${note}Now reply as ${me.name}, with only the words ${me.name} says out loud.)`;
   return msgs;
 }
 
@@ -197,6 +197,10 @@ export function pickNudge(
   lineIndex: number,
   isFinalRound: boolean,
 ): string {
+  const latest = history[history.length - 1];
+  if (latest?.kind === "note" && latest.speakerId === "moderator") {
+    return `The moderator just threw in: "${latest.text}". React to that directly and in character, and weave it into what you say.`;
+  }
   if (isFinalRound) return "This is your final turn. Wrap up with a memorable closing line.";
   if (!settings.antiLoop || lineIndex < 2) return "";
   const lines = history.filter((t) => t.kind !== "note");

@@ -45,23 +45,36 @@ export function App() {
 
   // Voices: load, then give each speaker a distinct default if theirs is missing.
   useEffect(() => {
-    const apply = (list: VoiceInfo[]) => {
-      setVoices(list);
+    // Browsers report voices in stages (local first, online ones later), so a
+    // saved voice may simply not have arrived yet. Fill empty slots right away,
+    // but only replace a missing saved voice once the list has had time to settle.
+    let latest: VoiceInfo[] = [];
+    const assign = (list: VoiceInfo[], replaceMissing: boolean) => {
       if (!list.length) return;
       setSpeakers((sp) => {
         const defaults = defaultVoices(list, sp.length);
         const valid = new Set(list.map((v) => v.uri));
         let changed = false;
         const next = sp.map((s, i) => {
-          if (s.voiceURI && valid.has(s.voiceURI)) return s;
+          if (s.voiceURI && (valid.has(s.voiceURI) || !replaceMissing)) return s;
           changed = true;
           return { ...s, voiceURI: defaults[i] };
         });
         return changed ? next : sp;
       });
     };
+    const apply = (list: VoiceInfo[]) => {
+      latest = list;
+      setVoices(list);
+      assign(list, false);
+    };
     void loadVoices().then(apply);
-    return onVoicesChanged(apply);
+    const settle = setTimeout(() => assign(latest, true), 4000);
+    const off = onVoicesChanged(apply);
+    return () => {
+      clearTimeout(settle);
+      off();
+    };
   }, []);
 
   // ---------------------------------------------------------------- backends

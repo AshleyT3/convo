@@ -96,6 +96,7 @@ export class WebLlmBackend implements LlmBackend {
     const e = engine;
     const onAbort = () => e.interruptGenerate();
     opts.signal?.addEventListener("abort", onAbort);
+    let finished = false;
     try {
       const stream = await e.chat.completions.create({
         messages: adaptMessages(this.id, messages),
@@ -109,8 +110,11 @@ export class WebLlmBackend implements LlmBackend {
         const piece = chunk.choices[0]?.delta?.content;
         if (piece) yield piece;
       }
+      finished = true;
     } finally {
       opts.signal?.removeEventListener("abort", onAbort);
+      // Consumer stopped early (e.g. length cap): stop generating on the GPU too.
+      if (!finished) e.interruptGenerate();
     }
   }
 }
