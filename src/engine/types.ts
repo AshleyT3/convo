@@ -1,0 +1,50 @@
+// Core data model. Speakers are a list (not "left"/"right") so the app can grow
+// beyond two voices later without reshaping anything.
+
+export interface Speaker {
+  id: string;
+  name: string;
+  /** Free-text personality, e.g. "a dry-witted skeptic who wants evidence". */
+  persona: string;
+  /** Browser voice URI (from speechSynthesis.getVoices()). Empty = auto-pick. */
+  voiceURI: string;
+  rate: number; // 0.5 – 2
+  pitch: number; // 0 – 2
+  color: string; // accent colour for the UI
+}
+
+export type ModeId = "debate" | "collaborate" | "chat" | "improv" | "interview";
+
+export type ReplyLength = "short" | "medium" | "long";
+
+export interface Turn {
+  id: string;
+  speakerId: string;
+  /** Full cleaned text produced so far (may run ahead of speech). */
+  text: string;
+  /** Number of characters of `text` already spoken aloud (for highlighting). */
+  spokenChars: number;
+  /** [start, end) of the sentence being spoken right now, if any. */
+  speaking?: [number, number];
+  done: boolean;
+  /** System/moderator notes (e.g. referee verdicts) instead of a speaker line. */
+  kind?: "line" | "note";
+}
+
+export interface ConversationSettings {
+  subject: string;
+  mode: ModeId;
+  replyLength: ReplyLength;
+  temperature: number;
+  /** 0 = endless. */
+  turnLimit: number;
+  /** How many recent turns each speaker sees verbatim; older ones get summarised. */
+  contextTurns: number;
+  /** Ask a hidden referee every N turns whether the conversation has concluded. 0 = off. */
+  refereeEvery: number;
+  /** Nudge speakers away from agreement loops with hidden moderator notes. */
+  antiLoop: boolean;
+  speech: boolean;
+}
+
+export type RunStatus = "idle" | "running" | "paused" | "finished" | "error";
