@@ -172,6 +172,11 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .toggle-btn.on { border-color: #fbbf24; color: #fbbf24; }
 .scene-marker { align-self: center; font-size: 0.8rem; color: var(--muted); padding: 2px 10px; border-left: 2px solid #34d399; border-right: 2px solid #34d399; border-radius: 4px; max-width: 90%; text-align: center; }
 
+/* in-browser model loading */
+.loading-card { background: color-mix(in srgb, var(--brand) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line)); border-radius: var(--radius); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; animation: rise 0.2s ease-out; }
+.loading-head { display: flex; justify-content: space-between; gap: 10px; }
+.loading-card progress { width: 100%; height: 10px; accent-color: var(--brand); }
+
 /* prompt viewer (advanced) */
 .who { display: flex; align-items: center; gap: 6px; }
 .inspect { border: none; background: none; cursor: pointer; padding: 0 2px; font-size: 0.8rem; opacity: 0.55; }

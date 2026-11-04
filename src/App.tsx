@@ -7,7 +7,7 @@ import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
 import { PromptViewer } from "./components/PromptViewer.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
-import { DEFAULT_PHONE_MODEL, WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
+import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
 import { getGpuInfo, isMobileDevice, servedLocally, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
@@ -162,10 +162,11 @@ export function App() {
       s = { ...s, subject: SUBJECT_IDEAS[Math.floor(Math.random() * SUBJECT_IDEAS.length)] };
       setSettings(s);
     }
+    // First run in browser mode: download/load the model right here (progress shows on
+    // the main page), then carry straight on into the conversation.
     if (backend.kind === "browser" && loadedBrowserModel() !== backend.browserModel) {
-      setShowSettings(true);
+      if (browser.state === "loading") return;
       if (!(await loadBrowser())) return;
-      setShowSettings(false);
     }
     speech.cancel();
     let f = facts;
@@ -429,7 +430,7 @@ export function App() {
         </div>
         <div className="buttons">
           {!running && (
-            <button className="btn primary big" onClick={() => void start(true)}>
+            <button className="btn primary big" onClick={() => void start(true)} disabled={browser.state === "loading"}>
               ▶ {hasTurns ? "New conversation" : "Start"}
             </button>
           )}
@@ -485,6 +486,28 @@ export function App() {
             </>
           }
         />
+
+        {backend.kind === "browser" && browser.state === "loading" && (
+          <div className="loading-card" role="status">
+            <div className="loading-head">
+              <b>Getting {BROWSER_MODELS.find((m) => m.id === backend.browserModel)?.label ?? "the AI"} ready…</b>
+              <span>{Math.round(browser.progress * 100)}%</span>
+            </div>
+            <progress value={browser.progress} max={1} />
+            <p className="muted small">
+              {browser.text.includes("cache")
+                ? "Loading from your browser's cache."
+                : `One-time download (about ${BROWSER_MODELS.find((m) => m.id === backend.browserModel)?.sizeGB ?? "a few"} GB). Next time it starts in seconds.`}{" "}
+              The conversation starts automatically when it's ready.
+            </p>
+          </div>
+        )}
+        {backend.kind === "browser" && browser.state === "error" && (
+          <div className="banner error">
+            <span>Couldn't load the in-browser AI: {browser.text}</span>
+            <button className="btn small" onClick={() => setShowSettings(true)}>Settings</button>
+          </div>
+        )}
 
         {state.error && (
           <div className="banner error">
