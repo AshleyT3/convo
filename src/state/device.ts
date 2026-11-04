@@ -11,6 +11,21 @@ export function isMobileDevice(): boolean {
   return /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
 }
 
+/**
+ * True when the page itself is served from this machine or the local network
+ * (dev server, a clone, self-hosting). Then probing a local model server is
+ * harmless. From a public website, browsers ask the visitor for permission to
+ * reach local apps, so we only do that after the visitor opts in.
+ */
+export function servedLocally(hostname = typeof location !== "undefined" ? location.hostname : "localhost"): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h === "::1" || h === "") return true;
+  const m = h.match(/^(\d+)\.(\d+)\.\d+\.\d+$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+}
+
 export interface GpuInfo {
   webgpu: boolean;
   /** Supports 16-bit float shaders (needed by some in-browser models). */

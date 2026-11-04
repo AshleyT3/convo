@@ -8,7 +8,7 @@ import { PromptViewer } from "./components/PromptViewer.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
 import { DEFAULT_PHONE_MODEL, WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
-import { getGpuInfo, isMobileDevice, type GpuInfo } from "./state/device.ts";
+import { getGpuInfo, isMobileDevice, servedLocally, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
 import { Transcript } from "./components/Transcript.tsx";
@@ -25,14 +25,19 @@ import { BrowserSpeech, defaultVoices, loadVoices, onVoicesChanged, speechSuppor
 
 const EMPTY: ConversationState = { status: "idle", turns: [], summary: "" };
 const mobile = isMobileDevice();
+const local = servedLocally();
 
 export function App() {
   const [speakers, setSpeakers] = useState<Speaker[]>(() => loadSaved("speakers", DEFAULT_SPEAKERS));
   const [settings, setSettings] = useState<ConversationSettings>(() => loadSaved("settings", DEFAULT_SETTINGS));
   const [backend, setBackend] = useState<BackendSettings>(() => {
     const saved = loadSaved("backend", DEFAULT_BACKEND);
+    if (saved.chosen) return saved;
     // Phones can't run a model server themselves: start them in the browser with a small model.
-    if (!saved.chosen && mobile) return { ...saved, kind: "browser", browserModel: DEFAULT_PHONE_MODEL };
+    if (mobile) return { ...saved, kind: "browser", browserModel: DEFAULT_PHONE_MODEL };
+    // On a public website, don't touch localhost until the visitor asks (browsers show a
+    // permission prompt for that). Start in the browser instead.
+    if (!local) return { ...saved, kind: "browser" };
     return saved;
   });
   const [gpu, setGpu] = useState<GpuInfo | null>(null);
@@ -304,7 +309,7 @@ export function App() {
     setFacts([]);
     setSpeakers(DEFAULT_SPEAKERS.map((s, i) => ({ ...s, voiceURI: defaultVoices(voices, DEFAULT_SPEAKERS.length)[i] ?? "" })));
     setSettings(DEFAULT_SETTINGS);
-    setBackend(mobile ? { ...DEFAULT_BACKEND, kind: "browser", browserModel: DEFAULT_PHONE_MODEL } : DEFAULT_BACKEND);
+    setBackend(mobile ? { ...DEFAULT_BACKEND, kind: "browser", browserModel: DEFAULT_PHONE_MODEL } : local ? DEFAULT_BACKEND : { ...DEFAULT_BACKEND, kind: "browser" });
   };
 
   // Keyboard: Space = pause/resume (when not typing), Esc = stop.
@@ -532,6 +537,7 @@ export function App() {
             setNotice("");
           }}
           mobile={mobile}
+          local={local}
           gpu={gpu}
           onSettings={setSettings}
           onTestServer={() => void testServer()}

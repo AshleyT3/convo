@@ -30,6 +30,8 @@ interface Props {
   onClose: () => void;
   mobile: boolean;
   gpu: GpuInfo | null;
+  /** Page is served from this machine / LAN (no permission prompt for local servers). */
+  local: boolean;
 }
 
 export function SettingsPanel(p: Props) {
@@ -85,6 +87,13 @@ export function SettingsPanel(p: Props) {
 
         {b.kind === "server" ? (
           <div className="group">
+            {!p.local && !p.mobile && (
+              <p className="muted small">
+                Because this page comes from a website, your browser will ask whether it may "access other apps and
+                services on this device". Allow it so Convo can reach the model server on your computer. Convo only
+                connects to the address below.
+              </p>
+            )}
             {p.mobile && (
               <p className="muted small">
                 A phone can't run the server itself. Start it on a computer with <code>--host 0.0.0.0</code> (Ollama:{" "}
