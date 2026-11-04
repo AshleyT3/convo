@@ -4,6 +4,7 @@ import { MODES, SCENE_PRESETS, SUBJECT_IDEAS, TWIST_IDEAS, cleanTwist, modeById,
 import type { ConversationSettings, ModeId, SceneFact, Speaker } from "./engine/types.ts";
 import { complete } from "./llm/types.ts";
 import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
+import { PromptViewer } from "./components/PromptViewer.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
 import { DEFAULT_PHONE_MODEL, WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
@@ -44,6 +45,7 @@ export function App() {
   const [curveball, setCurveball] = useState("");
   const [facts, setFacts] = useState<SceneFact[]>(() => loadSaved<SceneFact[]>("facts", []));
   const [twisting, setTwisting] = useState(false);
+  const [inspectId, setInspectId] = useState<string | null>(null);
 
   const convo = useRef<Conversation | null>(null);
   const speech = useMemo(() => new BrowserSpeech(), []);
@@ -310,7 +312,8 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement).closest("input, textarea, select");
       if (e.key === "Escape") {
-        if (showSettings) setShowSettings(false);
+        if (inspectId) setInspectId(null);
+        else if (showSettings) setShowSettings(false);
         else convo.current?.stop();
       } else if (e.key === " " && !typing && running) {
         e.preventDefault();
@@ -320,7 +323,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [running, state.status, showSettings]);
+  }, [running, state.status, showSettings, inspectId]);
 
   // ---------------------------------------------------------------- view
 
@@ -469,6 +472,7 @@ export function App() {
           speakers={speakers}
           generatingId={state.generatingId}
           speechOn={settings.speech}
+          onInspect={settings.advanced ? (t) => setInspectId(t.id) : undefined}
           empty={
             <>
               <p className="big-hint">Pick a topic and a mode, then press <b>Start</b>.</p>
@@ -510,6 +514,12 @@ export function App() {
           </span>
         </div>
       </main>
+
+      {inspectId && (() => {
+        // Looked up live, so the reply text keeps filling in while it streams.
+        const t = state.turns.find((x) => x.id === inspectId);
+        return t?.prompt ? <PromptViewer turn={t} speakers={speakers} onClose={() => setInspectId(null)} /> : null;
+      })()}
 
       {showSettings && (
         <SettingsPanel

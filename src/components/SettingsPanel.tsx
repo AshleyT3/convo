@@ -223,6 +223,14 @@ export function SettingsPanel(p: Props) {
           <p className="muted small">Tip: Microsoft Edge offers many extra natural-sounding voices.</p>
         </div>
 
+        <h3>Advanced</h3>
+        <div className="group">
+          <label className="toggle">
+            <input type="checkbox" checked={!!s.advanced} onChange={(e) => setS({ advanced: e.target.checked })} />
+            <span>Enable advanced features: a 🔍 on each line shows exactly what the model was given (the behind-the-scenes prompt)</span>
+          </label>
+        </div>
+
         <div className="row-actions end">
           <button className="btn ghost" onClick={p.onResetAll}>Reset everything to defaults</button>
         </div>

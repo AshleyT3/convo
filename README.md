@@ -75,7 +75,24 @@ src/components/  UI
 `src/engine/prompts.ts` is where the personality of the app lives. Tune it freely.
 
 ## Deploy (free static hosting)
-`npm run build` produces a fully static `dist/` folder. On **Cloudflare Pages**, set the build command to `npm run build` and the output directory to `dist`. Any static host works.
+`npm run build` produces a fully static `dist/` folder that any static host can serve, at a domain root or under any path.
+
+**Cloudflare Worker at `yourdomain.com/convo`** (config included):
+1. In `wrangler.jsonc`, replace `example.com` with your domain. The domain must be a zone in your Cloudflare account.
+2. Run `npx wrangler login` once.
+3. Run `npm run deploy`. This builds into `cf-site/convo/` and deploys a static-assets Worker on the route `yourdomain.com/convo*`.
+
+`npm run build:cf && npm run preview:cf` serves the same build locally at `http://localhost:4173/convo/`.
+
+Notes:
+- Redirect Rules run before Workers. If an existing redirect catches every path on the domain, exclude `/convo` from it.
+- The domain needs a proxied (orange-cloud) DNS record for Worker routes to take effect.
+
+## Advanced: see behind the curtain
+Tick **⚙ Settings → Advanced** and each line gets a 🔍 button. It shows exactly what the model was given for that line:
+- the setup (persona, rules, world facts, secrets);
+- the other speakers' lines as "user" messages and the speaker's own as "assistant";
+- the hidden per-turn direction.
 
 ## Privacy
 The conversation is generated on your device: in your browser, or by the model server you point it at. Convo has no backend and collects nothing.

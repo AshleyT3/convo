@@ -51,6 +51,10 @@ export interface Turn {
    * "scene" = display-only marker (fact added/removed), never sent to the model.
    */
   kind?: "line" | "note" | "scene";
+  /** Exactly what the model was given for this line (for the advanced prompt viewer). */
+  prompt?: { role: "system" | "user" | "assistant"; content: string }[];
+  /** Sampling settings used for this line. */
+  params?: { temperature: number; maxTokens: number };
 }
 
 export interface ConversationSettings {
@@ -67,6 +71,8 @@ export interface ConversationSettings {
   /** Nudge speakers away from agreement loops with hidden moderator notes. */
   antiLoop: boolean;
   speech: boolean;
+  /** Show behind-the-scenes tools (e.g. the prompt viewer). */
+  advanced?: boolean;
 }
 
 export type RunStatus = "idle" | "running" | "paused" | "finished" | "error";

@@ -266,8 +266,21 @@ export class Conversation {
       .flatMap((o) => [`\n${o.name}:`, `[${o.name}]`])
       .concat(["[Moderator]"]);
 
-    const turn: Turn = { id: uid(), speakerId: speaker.id, text: "", spokenChars: 0, done: false, kind: "line" };
+    const maxTokens = maxTokensFor(s.replyLength);
+    const turn: Turn = {
+      id: uid(),
+      speakerId: speaker.id,
+      text: "",
+      spokenChars: 0,
+      done: false,
+      kind: "line",
+      prompt: messages,
+      params: { temperature: s.temperature, maxTokens },
+    };
     this.turns.push(turn);
+    // Keep memory bounded in endless runs: only the last 60 lines keep their prompts.
+    const withPrompts = this.turns.filter((t) => t.prompt);
+    for (const old of withPrompts.slice(0, -60)) old.prompt = undefined;
     this.generatingId = speaker.id;
     this.emit();
 
@@ -292,7 +305,7 @@ export class Conversation {
 
     for await (const piece of this.backend.chat(messages, {
       temperature: s.temperature,
-      maxTokens: maxTokensFor(s.replyLength),
+      maxTokens,
       stop,
       signal: this.abort.signal,
     })) {

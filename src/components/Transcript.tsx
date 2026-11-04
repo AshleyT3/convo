@@ -7,13 +7,15 @@ interface Props {
   generatingId?: string;
   speechOn: boolean;
   empty: React.ReactNode;
+  /** When set, lines get a 🔍 button that opens the prompt viewer. */
+  onInspect?: (t: Turn) => void;
 }
 
 /**
  * One shared timeline, with each speaker in their own lane (left/right for two;
  * staggered lanes if more speakers are ever added).
  */
-export function Transcript({ turns, speakers, generatingId, speechOn, empty }: Props) {
+export function Transcript({ turns, speakers, generatingId, speechOn, empty, onInspect }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
 
@@ -60,7 +62,14 @@ export function Transcript({ turns, speakers, generatingId, speechOn, empty }: P
             style={{ marginLeft: `${offset}%`, "--accent": sp?.color } as React.CSSProperties}
           >
             <div className={`bubble ${t.speaking ? "is-speaking" : ""}`}>
-              <div className="who">{sp?.name ?? "?"}</div>
+              <div className="who">
+                {sp?.name ?? "?"}
+                {onInspect && t.prompt && (
+                  <button className="inspect" title="See exactly what the model was given for this line" onClick={() => onInspect(t)}>
+                    🔍
+                  </button>
+                )}
+              </div>
               {waiting ? <span className="typing"><i /><i /><i /></span> : <BubbleText turn={t} speechOn={speechOn} />}
             </div>
           </div>
