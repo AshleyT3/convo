@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.ts",
-    "build:cf": "tsc --noEmit && vite build --outDir cf-site/convo --emptyOutDir",
+    "build:cf": "tsc --noEmit && vite build --outDir cf-site/convo --emptyOutDir && node -e \"require('fs').copyFileSync('cloudflare/_headers','cf-site/_headers')\"",
     "preview:cf": "vite preview --outDir cf-site",
     "deploy": "npm run build:cf && npx wrangler deploy"
   },

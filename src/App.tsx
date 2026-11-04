@@ -7,7 +7,9 @@ import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
 import { PromptViewer } from "./components/PromptViewer.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
-import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
+import { Footer } from "./components/Footer.tsx";
+import { ModelLicenseLine } from "./components/ModelLicenseLine.tsx";
+import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
 import { getGpuInfo, isMobileDevice, servedLocally, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
@@ -31,7 +33,9 @@ export function App() {
   const [speakers, setSpeakers] = useState<Speaker[]>(() => loadSaved("speakers", DEFAULT_SPEAKERS));
   const [settings, setSettings] = useState<ConversationSettings>(() => loadSaved("settings", DEFAULT_SETTINGS));
   const [backend, setBackend] = useState<BackendSettings>(() => {
-    const saved = loadSaved("backend", DEFAULT_BACKEND);
+    const loaded = loadSaved("backend", DEFAULT_BACKEND);
+    // A model that was removed from the list (e.g. for licensing) falls back to the default.
+    const saved = browserModelById(loaded.browserModel) ? loaded : { ...loaded, browserModel: DEFAULT_BACKEND.browserModel };
     if (saved.chosen) return saved;
     // Phones can't run a model server themselves: start them in the browser with a small model.
     if (mobile) return { ...saved, kind: "browser", browserModel: DEFAULT_PHONE_MODEL };
@@ -500,6 +504,7 @@ export function App() {
                 : `One-time download (about ${BROWSER_MODELS.find((m) => m.id === backend.browserModel)?.sizeGB ?? "a few"} GB). Next time it starts in seconds.`}{" "}
               The conversation starts automatically when it's ready.
             </p>
+            <ModelLicenseLine id={backend.browserModel} />
           </div>
         )}
         {backend.kind === "browser" && browser.state === "error" && (
@@ -569,6 +574,8 @@ export function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      <Footer license={backend.kind === "browser" ? browserModelById(backend.browserModel)?.license : undefined} />
     </div>
   );
 }

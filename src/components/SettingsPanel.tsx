@@ -4,6 +4,7 @@ import { SERVER_PRESETS } from "../llm/openaiCompat.ts";
 import { BROWSER_MODELS, isBrowserModelCached, webGpuSupported } from "../llm/webllm.ts";
 import type { BackendSettings } from "../state/defaults.ts";
 import type { GpuInfo } from "../state/device.ts";
+import { ModelLicenseLine } from "./ModelLicenseLine.tsx";
 
 export interface ServerStatus {
   state: "unknown" | "checking" | "ok" | "down";
@@ -168,6 +169,7 @@ export function SettingsPanel(p: Props) {
                         {m.phone && <span className="m-tag">📱 phone-friendly</span>}
                       </span>
                       <span className="m-note">{note}</span>
+                      <span className="m-lic"><ModelLicenseLine id={m.id} compact /></span>
                       <span className="m-size">{cached[m.id] ? "downloaded" : `${m.sizeGB} GB`}</span>
                     </label>
                   );
@@ -180,6 +182,10 @@ export function SettingsPanel(p: Props) {
               {p.browser.state === "loading" && <progress value={p.browser.progress} max={1} />}
             </div>
             {p.browser.text && <p className="muted small">{p.browser.text}</p>}
+            <p className="muted small">
+              Models are downloaded from their public hosts, not from this site. Downloading a model means accepting its
+              licence (linked under each model).
+            </p>
           </div>
         )}
 

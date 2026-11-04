@@ -1,0 +1,12 @@
+# Cloudflare static-assets headers (copied to cf-site/_headers by `npm run build:cf`).
+/convo/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# Built files have content hashes in their names, so they can be cached forever.
+/convo/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -15,20 +15,54 @@ export interface BrowserModel {
   needsF16?: boolean;
   /** A "thinking" model: thinking is switched off and stripped. */
   thinking?: boolean;
+  license: ModelLicense;
 }
 
+export interface ModelLicense {
+  name: string;
+  url: string;
+  /** Use policy users must follow (Llama AUP, Gemma prohibited-use policy). */
+  policyUrl?: string;
+  /** Llama licence: products must display "Built with Llama". */
+  builtWithLlama?: boolean;
+}
+
+const LLAMA_32: ModelLicense = {
+  name: "Llama 3.2 Community License",
+  url: "https://www.llama.com/llama3_2/license/",
+  policyUrl: "https://www.llama.com/llama3_2/use-policy/",
+  builtWithLlama: true,
+};
+const LLAMA_31: ModelLicense = {
+  name: "Llama 3.1 Community License",
+  url: "https://www.llama.com/llama3_1/license/",
+  policyUrl: "https://www.llama.com/llama3_1/use-policy/",
+  builtWithLlama: true,
+};
+const GEMMA: ModelLicense = {
+  name: "Gemma Terms of Use",
+  url: "https://ai.google.dev/gemma/terms",
+  policyUrl: "https://ai.google.dev/gemma/prohibited_use_policy",
+};
+const APACHE: ModelLicense = { name: "Apache 2.0", url: "https://www.apache.org/licenses/LICENSE-2.0" };
+const MIT: ModelLicense = { name: "MIT", url: "https://opensource.org/license/mit" };
+
+// Only models whose licences allow use in a free, possibly donation-supported app.
 export const BROWSER_MODELS: BrowserModel[] = [
-  { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B", sizeGB: 2.3, note: "Recommended: good balance" },
-  { id: "Qwen2.5-3B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 3B", sizeGB: 2.5, note: "Good balance" },
-  { id: "gemma-2-2b-it-q4f16_1-MLC", label: "Gemma 2 2B", sizeGB: 1.9, note: "Chatty, light" },
-  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B", sizeGB: 0.9, note: "Fast and a bit naive", phone: true },
-  { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", label: "SmolLM2 360M", sizeGB: 0.4, note: "Tiny. Expect glorious nonsense", phone: true },
-  { id: "Phi-3.5-mini-instruct-q4f16_1-MLC", label: "Phi 3.5 mini", sizeGB: 3.7, note: "Smarter, heavier" },
-  { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", label: "Llama 3.1 8B", sizeGB: 5.0, note: "Most robust large model. Strong GPU" },
-  { id: "Qwen3-8B-q4f16_1-MLC", label: "Qwen3 8B", sizeGB: 5.7, note: "Newest and sharpest. Strong GPU", thinking: true },
-  { id: "gemma-2-9b-it-q4f16_1-MLC", label: "Gemma 2 9B", sizeGB: 6.4, note: "Largest. Great banter. Strong GPU", needsF16: true },
-  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 7B", sizeGB: 5.1, note: "Large, solid. Strong GPU" },
+  { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B", sizeGB: 2.3, note: "Recommended: good balance", license: LLAMA_32 },
+  { id: "gemma-2-2b-it-q4f16_1-MLC", label: "Gemma 2 2B", sizeGB: 1.9, note: "Chatty, light", license: GEMMA },
+  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B", sizeGB: 0.9, note: "Fast and a bit naive", phone: true, license: LLAMA_32 },
+  { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", label: "SmolLM2 360M", sizeGB: 0.4, note: "Tiny. Expect glorious nonsense", phone: true, license: APACHE },
+  { id: "Phi-3.5-mini-instruct-q4f16_1-MLC", label: "Phi 3.5 mini", sizeGB: 3.7, note: "Smarter, heavier", license: MIT },
+  { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", label: "Llama 3.1 8B", sizeGB: 5.0, note: "Most robust large model. Strong GPU", license: LLAMA_31 },
+  { id: "Qwen3-8B-q4f16_1-MLC", label: "Qwen3 8B", sizeGB: 5.7, note: "Newest and sharpest. Strong GPU", thinking: true, license: APACHE },
+  { id: "gemma-2-9b-it-q4f16_1-MLC", label: "Gemma 2 9B", sizeGB: 6.4, note: "Largest. Great banter. Strong GPU", needsF16: true, license: GEMMA },
+  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 7B", sizeGB: 5.1, note: "Large, solid. Strong GPU", license: APACHE },
 ];
+
+export function browserModelById(id: string): BrowserModel | undefined {
+  return BROWSER_MODELS.find((m) => m.id === id);
+}
 
 export const DEFAULT_DESKTOP_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
 export const DEFAULT_PHONE_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";

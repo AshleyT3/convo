@@ -172,6 +172,15 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .toggle-btn.on { border-color: #fbbf24; color: #fbbf24; }
 .scene-marker { align-self: center; font-size: 0.8rem; color: var(--muted); padding: 2px 10px; border-left: 2px solid #34d399; border-right: 2px solid #34d399; border-radius: 4px; max-width: 90%; text-align: center; }
 
+/* licences + footer */
+.m-lic { grid-area: l; }
+.lic { font-size: 0.75rem; color: var(--muted); }
+.lic a, .foot a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); }
+.lic a:hover, .foot a:hover { color: var(--text); }
+.llama { color: var(--text); }
+.foot { text-align: center; font-size: 0.75rem; color: var(--muted); padding: 2px 8px 0; }
+.foot p { margin: 2px 0; }
+
 /* in-browser model loading */
 .loading-card { background: color-mix(in srgb, var(--brand) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line)); border-radius: var(--radius); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; animation: rise 0.2s ease-out; }
 .loading-head { display: flex; justify-content: space-between; gap: 10px; }
@@ -218,7 +227,7 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .pill.ok { color: var(--ok); }
 .pill.down { color: var(--bad); }
 .model-list { display: flex; flex-direction: column; gap: 6px; }
-.model { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "r n s" "r t s"; column-gap: 10px; align-items: center; border: 1px solid var(--line); background: var(--bg2); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+.model { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "r n s" "r t s" "r l s"; column-gap: 10px; align-items: center; border: 1px solid var(--line); background: var(--bg2); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
 .model.on { border-color: var(--brand); }
 .model.disabled { opacity: 0.5; cursor: not-allowed; }
 .m-tag { margin-left: 8px; font-size: 0.7rem; font-weight: 600; color: var(--ok); white-space: nowrap; }
