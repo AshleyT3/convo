@@ -1,6 +1,6 @@
 // Cloudflare Worker that serves the built app as static files at <your-domain>/convo
 // Build first with `npm run build:cf` (outputs to cf-site/convo/), then `npx wrangler deploy`.
-// Replace example.com below with your domain (it must be a zone in your Cloudflare account).
+// Change the route below to your own domain (it must be a zone in your Cloudflare account).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "convo",
@@ -13,6 +13,6 @@
   },
   "workers_dev": false,
   "routes": [
-    { "pattern": "example.com/convo*", "zone_name": "example.com" }
+    { "pattern": "ashleypurringtech.com/convo*", "zone_name": "ashleypurringtech.com" }
   ]
 }
