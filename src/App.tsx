@@ -411,11 +411,17 @@ export function App() {
 
       <div className="controls">
         <div className="subject">
-          <input
+          <textarea
+            rows={2}
             value={settings.subject}
             placeholder="What should they talk about? (leave empty for a surprise)"
-            onChange={(e) => setSettings({ ...settings, subject: e.target.value })}
-            onKeyDown={(e) => e.key === "Enter" && !running && void start(true)}
+            // A topic is one paragraph: newlines (e.g. pasted) become spaces.
+            onChange={(e) => setSettings({ ...settings, subject: e.target.value.replace(/\s*\n\s*/g, " ") })}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault(); // Enter starts the show instead of adding a line
+              if (!running) void start(true);
+            }}
             aria-label="Subject"
           />
           <button className="icon-btn big" title="Surprise me" onClick={surprise}>🎲</button>

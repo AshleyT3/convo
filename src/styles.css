@@ -66,8 +66,10 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-siz
 /* controls */
 .controls { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "subject buttons" "modes buttons"; gap: 10px 14px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
 .subject { grid-area: subject; display: flex; gap: 8px; }
-.subject input { flex: 1; min-width: 0; padding: 11px 14px; font-size: 1.05rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); outline: none; }
-.subject input:focus { border-color: var(--brand); }
+/* Fixed two-line height; a longer topic scrolls inside the box. */
+.subject textarea { flex: 1; min-width: 0; padding: 8px 14px; font-size: 1.05rem; line-height: 1.35;
+  height: calc(2 * 1.35em + 18px); /* 2 lines + padding + border */ resize: none; overflow-y: auto; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); outline: none; }
+.subject textarea:focus { border-color: var(--brand); }
 .modes { grid-area: modes; display: flex; flex-wrap: wrap; gap: 6px; }
 .buttons { grid-area: buttons; display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 170px; }
 
