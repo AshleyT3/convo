@@ -93,7 +93,8 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-siz
 .deck { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
   padding: 2px; margin: -2px; scrollbar-width: thin; overscroll-behavior: contain; }
 .deck > * { flex-shrink: 0; }
-.stage { flex: 1 1 0; display: flex; flex-direction: column; gap: 10px; }
+/* Fixed minimum (not content-based), so a growing transcript scrolls instead of squeezing the deck. */
+.stage { flex: 1 1 0; min-height: 300px; display: flex; flex-direction: column; gap: 10px; }
 .stage > :not(.transcript) { flex-shrink: 0; }
 .app > footer { flex-shrink: 0; }
 .cards { display: grid; gap: 12px; }
@@ -127,7 +128,7 @@ input[type="range"] { accent-color: var(--brand); width: 100%; }
 input[type="color"] { width: 40px; height: 26px; border: none; background: none; padding: 0; }
 
 /* transcript */
-.transcript { flex: 1; min-height: 200px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+.transcript { flex: 1; min-height: 120px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
 .empty { margin: auto; text-align: center; padding: 24px; }
 .big-hint { font-size: 1.15rem; margin: 0 0 6px; }
 .bubble-row { --accent: var(--brand); width: 75%; display: flex; }
