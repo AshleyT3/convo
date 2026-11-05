@@ -25,9 +25,10 @@ function describe(v: SpeechSynthesisVoice): VoiceInfo {
   const n = v.name;
   const gender = MALE.test(n) && !/female/i.test(n) ? "male" : FEMALE.test(n) ? "female" : "unknown";
   let quality = 0;
+  // Natural voices (Edge's are online but quick) sound best. Otherwise local voices win
+  // over Chrome's Google voices, which pause for a network round trip every sentence.
   if (/natural|neural|premium|enhanced/i.test(n)) quality += 3;
-  if (/online/i.test(n)) quality += 1;
-  if (/google/i.test(n)) quality += 1;
+  if (v.localService) quality += 1;
   if (/espeak|robot/i.test(n)) quality -= 3;
   return { uri: v.voiceURI, name: n, lang: v.lang, local: v.localService, gender, quality };
 }
@@ -107,6 +108,8 @@ export class BrowserSpeech implements Speech {
   speak(text: string, speaker: Speaker): Promise<void> {
     if (!speechSupported || !text.trim()) return Promise.resolve();
     this.current?.finish();
+    // Some voices hold a spaced dash ("true - after all") too long; a comma pauses naturally.
+    text = text.replace(/\s+[-–—]\s+/g, ", ");
     const voice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === speaker.voiceURI);
     return new Promise<void>((resolve) => {
       this.current = {

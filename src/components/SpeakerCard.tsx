@@ -50,7 +50,7 @@ export function SpeakerCard({ speaker, voices, speaking, thinking, side, onChang
           )}
           {voices.map((v) => (
             <option key={v.uri} value={v.uri}>
-              {v.name.replace(/^Microsoft /, "")} · {v.lang}
+              {v.name.replace(/^Microsoft /, "")} · {v.lang}{v.local ? "" : " · online"}
             </option>
           ))}
         </select>

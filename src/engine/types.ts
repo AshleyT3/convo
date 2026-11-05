@@ -71,6 +71,8 @@ export interface ConversationSettings {
   /** Nudge speakers away from agreement loops with hidden moderator notes. */
   antiLoop: boolean;
   speech: boolean;
+  /** While speaking, reveal each sentence when its voice starts (instead of as soon as it's written). */
+  revealWithSpeech: boolean;
   /** Show behind-the-scenes tools (e.g. the prompt viewer). */
   advanced?: boolean;
 }

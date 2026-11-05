@@ -43,6 +43,7 @@ export const DEFAULT_SETTINGS: ConversationSettings = {
   refereeEvery: 0,
   antiLoop: true,
   speech: true,
+  revealWithSpeech: true,
 };
 
 export const DEFAULT_BACKEND: BackendSettings = {

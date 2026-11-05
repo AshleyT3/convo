@@ -35,4 +35,12 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - Save/share transcripts; export audio for videos.
 
 ## To do
-- **Reveal text with the voice.** While speech is on, a reply's text currently appears as fast as the model writes it, running ahead of the voice. Add a setting under "Speak out loud" (proposed name: "Show text as it's spoken", on by default) that reveals each sentence only when its speech starts. Until then, the speaker's bubble shows the "…" typing dots. The engine already tracks this (`turn.speaking`, `turn.spokenChars`), so it's a display-only change in `Transcript`.
+- [ ] **Test on real devices:** a phone (Android Chrome, iPhone Safari), desktop Safari and Firefox. Check layout, voices and the in-browser model fallback.
+- [ ] **Test the big in-browser models** (Llama 3.1 8B, Qwen3 8B, Gemma 2 9B, Qwen 2.5 7B; 5 to 6.4 GB downloads each) on a strong GPU: load time, speed and quality.
+- [ ] **README screenshot or GIF** of a live conversation (can come from the YouTube video).
+- [ ] **Pin Wrangler as a dev dependency** (`npm install -D wrangler`), so `npm run deploy` stops asking to download it.
+
+### Done
+- [x] **Show text as it's spoken:** a setting under "Speak out loud", on by default. Each sentence appears when its voice starts, with typing dots until then. If the show stops, unspoken text is shown dimmed.
+- [x] **Mark cloud voices** "· online" in the voice picker. Defaults now prefer local voices over Chrome's Google voices, which pause every sentence for a network round trip; Natural voices still come first.
+- [x] **Speak a spaced dash as a comma,** because some voices hold a dash too long. The text on screen keeps the dash.

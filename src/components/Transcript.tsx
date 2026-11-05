@@ -6,6 +6,8 @@ interface Props {
   speakers: Speaker[];
   generatingId?: string;
   speechOn: boolean;
+  /** Hide each sentence until its voice starts (only while the show is live). */
+  reveal: boolean;
   empty: React.ReactNode;
   /** When set, lines get a 🔍 button that opens the prompt viewer. */
   onInspect?: (t: Turn) => void;
@@ -15,7 +17,7 @@ interface Props {
  * One shared timeline, with each speaker in their own lane (left/right for two;
  * staggered lanes if more speakers are ever added).
  */
-export function Transcript({ turns, speakers, generatingId, speechOn, empty, onInspect }: Props) {
+export function Transcript({ turns, speakers, generatingId, speechOn, reveal, empty, onInspect }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
 
@@ -54,6 +56,22 @@ export function Transcript({ turns, speakers, generatingId, speechOn, empty, onI
         const idx = Math.max(0, speakers.findIndex((s) => s.id === t.speakerId));
         const sp = speakers[idx];
         const offset = n > 1 ? (idx * 25) / (n - 1) : 0;
+        const hideUnspoken = reveal && speechOn;
+        // Revealing with speech: nothing spoken yet means nothing to show but the dots.
+        if (hideUnspoken && !t.speaking && !t.spokenChars && t.text) {
+          return (
+            <div
+              key={t.id}
+              className={`bubble-row ${idx === n - 1 && n > 1 ? "right" : ""}`}
+              style={{ marginLeft: `${offset}%`, "--accent": sp?.color } as React.CSSProperties}
+            >
+              <div className="bubble">
+                <div className="who">{sp?.name ?? "?"}</div>
+                <span className="typing"><i /><i /><i /></span>
+              </div>
+            </div>
+          );
+        }
         const waiting = !t.text && generatingId === t.speakerId && t === lastLine;
         return (
           <div
@@ -70,7 +88,7 @@ export function Transcript({ turns, speakers, generatingId, speechOn, empty, onI
                   </button>
                 )}
               </div>
-              {waiting ? <span className="typing"><i /><i /><i /></span> : <BubbleText turn={t} speechOn={speechOn} />}
+              {waiting ? <span className="typing"><i /><i /><i /></span> : <BubbleText turn={t} speechOn={speechOn} hideUnspoken={hideUnspoken} />}
             </div>
           </div>
         );
@@ -79,7 +97,7 @@ export function Transcript({ turns, speakers, generatingId, speechOn, empty, onI
   );
 }
 
-function BubbleText({ turn, speechOn }: { turn: Turn; speechOn: boolean }) {
+function BubbleText({ turn, speechOn, hideUnspoken }: { turn: Turn; speechOn: boolean; hideUnspoken: boolean }) {
   const { text, spokenChars, speaking } = turn;
   // Before the voices catch up, upcoming text is shown dimmed.
   if (!speechOn && !speaking) {
@@ -95,7 +113,7 @@ function BubbleText({ turn, speechOn }: { turn: Turn; speechOn: boolean }) {
     <p>
       <span>{text.slice(0, a)}</span>
       {b > a && <mark>{text.slice(a, b)}</mark>}
-      <span className="pending">{text.slice(b)}</span>
+      {!hideUnspoken && <span className="pending">{text.slice(b)}</span>}
     </p>
   );
 }

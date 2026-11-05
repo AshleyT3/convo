@@ -485,6 +485,7 @@ export function App() {
           speakers={speakers}
           generatingId={state.generatingId}
           speechOn={settings.speech}
+          reveal={settings.revealWithSpeech && running}
           onInspect={settings.advanced ? (t) => setInspectId(t.id) : undefined}
           empty={
             <>

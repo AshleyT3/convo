@@ -22,6 +22,7 @@ const settings: ConversationSettings = {
   refereeEvery: 4,
   antiLoop: true,
   speech: true,
+  revealWithSpeech: true,
 };
 const quiet: Speech = { speak: async () => {}, pause() {}, resume() {}, cancel() {} };
 

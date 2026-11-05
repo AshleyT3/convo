@@ -235,6 +235,15 @@ export function SettingsPanel(p: Props) {
             <input type="checkbox" checked={s.speech} onChange={(e) => setS({ speech: e.target.checked })} />
             <span>Speak out loud</span>
           </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={s.revealWithSpeech}
+              disabled={!s.speech}
+              onChange={(e) => setS({ revealWithSpeech: e.target.checked })}
+            />
+            <span>Show text as it's spoken (otherwise text appears as soon as it's written, ahead of the voice)</span>
+          </label>
           <p className="muted small">Tip: Microsoft Edge offers many extra natural-sounding voices.</p>
         </div>
 
