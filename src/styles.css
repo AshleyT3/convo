@@ -88,8 +88,14 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-siz
 .icon-btn:hover:not(:disabled) { color: var(--text); border-color: var(--brand); }
 .icon-btn.big { width: 46px; height: auto; font-size: 1.2rem; }
 
-/* stage */
-.stage { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+/* Layout: the deck (controls, scene, speakers) takes its natural height and only scrolls
+   when that would squeeze the stage (chat + moderator), which always stays on screen. */
+.deck { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  padding: 2px; margin: -2px; scrollbar-width: thin; overscroll-behavior: contain; }
+.deck > * { flex-shrink: 0; }
+.stage { flex: 1 1 0; display: flex; flex-direction: column; gap: 10px; }
+.stage > :not(.transcript) { flex-shrink: 0; }
+.app > footer { flex-shrink: 0; }
 .cards { display: grid; gap: 12px; }
 
 .card { --accent: var(--brand); background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow 0.25s, border-color 0.25s; min-width: 0; }
@@ -121,7 +127,7 @@ input[type="range"] { accent-color: var(--brand); width: 100%; }
 input[type="color"] { width: 40px; height: 26px; border: none; background: none; padding: 0; }
 
 /* transcript */
-.transcript { flex: 1; min-height: 160px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+.transcript { flex: 1; min-height: 200px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
 .empty { margin: auto; text-align: center; padding: 24px; }
 .big-hint { font-size: 1.15rem; margin: 0 0 6px; }
 .bubble-row { --accent: var(--brand); width: 75%; display: flex; }
@@ -261,6 +267,11 @@ details[open] summary { margin-bottom: 6px; }
 @media (max-width: 460px) {
   .cards { grid-template-columns: 1fr !important; }
   .choice-cards { grid-template-columns: 1fr; }
+}
+/* Very short windows (landscape phones): two scroll areas get cramped, so the whole page scrolls. */
+@media (max-height: 520px) {
+  .app { height: auto; min-height: 100%; }
+  .deck { overflow: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

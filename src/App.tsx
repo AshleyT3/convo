@@ -380,6 +380,8 @@ export function App() {
 
   return (
     <div className="app">
+      {/* Control deck: sized to its content; scrolls on its own only if it would squeeze the chat. */}
+      <div className="deck">
       <header className="top">
         <div className="brand">
           <span className="logo" aria-hidden><i /><i /></span>
@@ -462,21 +464,22 @@ export function App() {
         onClear={clearFacts}
       />
 
-      <main className="stage">
-        <div className="cards" style={{ gridTemplateColumns: `repeat(${speakers.length}, 1fr)` }}>
-          {speakers.map((sp, i) => (
-            <SpeakerCard
-              key={sp.id}
-              speaker={sp}
-              voices={voices}
-              side={sideLabel(i)}
-              speaking={speakingId === sp.id}
-              thinking={state.generatingId === sp.id && speakingId !== sp.id}
-              onChange={(next) => setSpeakers((all) => all.map((x) => (x.id === next.id ? next : x)))}
-            />
-          ))}
-        </div>
+      <div className="cards" style={{ gridTemplateColumns: `repeat(${speakers.length}, 1fr)` }}>
+        {speakers.map((sp, i) => (
+          <SpeakerCard
+            key={sp.id}
+            speaker={sp}
+            voices={voices}
+            side={sideLabel(i)}
+            speaking={speakingId === sp.id}
+            thinking={state.generatingId === sp.id && speakingId !== sp.id}
+            onChange={(next) => setSpeakers((all) => all.map((x) => (x.id === next.id ? next : x)))}
+          />
+        ))}
+      </div>
+      </div>
 
+      <main className="stage">
         <Transcript
           turns={state.turns}
           speakers={speakers}
