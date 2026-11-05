@@ -33,3 +33,6 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - More than two speakers, and floating speaker windows.
 - Better local TTS (e.g. Piper) behind the same `Speech` interface; a native desktop shell.
 - Save/share transcripts; export audio for videos.
+
+## To do
+- **Reveal text with the voice.** While speech is on, a reply's text currently appears as fast as the model writes it, running ahead of the voice. Add a setting under "Speak out loud" (proposed name: "Show text as it's spoken", on by default) that reveals each sentence only when its speech starts. Until then, the speaker's bubble shows the "…" typing dots. The engine already tracks this (`turn.speaking`, `turn.spokenChars`), so it's a display-only change in `Transcript`.
