@@ -181,17 +181,18 @@ export class BrowserSpeech implements Speech {
 const keepAlive = new Set<SpeechSynthesisUtterance>();
 
 /**
- * Chrome's cloud (Google) voices stop after ~15 seconds of speech, so long
- * sentences are split for non-local voices only, preferably at a comma or other
- * clause break. Local voices get the whole sentence, with no extra pauses.
+ * Chrome's Google voices stop after ~15 seconds of speech, so long sentences are
+ * split for those voices only, preferably at a comma or other clause break. Each
+ * split costs a network round trip, so every other voice (local, or Edge's
+ * Natural voices) gets the whole sentence.
  */
-const CLOUD_MAX_CHARS = 200;
+const GOOGLE_MAX_CHARS = 200;
 function splitForVoice(text: string, voice: SpeechSynthesisVoice | undefined): string[] {
-  if (!voice || voice.localService) return [text];
+  if (!voice || voice.localService || !/^Google/i.test(voice.name)) return [text];
   const parts: string[] = [];
   let rest = text;
-  while (rest.length > CLOUD_MAX_CHARS) {
-    const head = rest.slice(0, CLOUD_MAX_CHARS);
+  while (rest.length > GOOGLE_MAX_CHARS) {
+    const head = rest.slice(0, GOOGLE_MAX_CHARS);
     const clause = Math.max(...[", ", "; ", ": ", " - ", " — "].map((p) => head.lastIndexOf(p)));
     const cut = clause > 60 ? clause + 1 : head.lastIndexOf(" ");
     if (cut <= 0) break;
