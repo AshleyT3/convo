@@ -100,16 +100,18 @@ export function defaultVoices(voices: VoiceInfo[], count: number): string[] {
  * say it again from the start on resume.
  */
 export class BrowserSpeech implements Speech {
-  private current: { text: string; speaker: Speaker; finish: () => void } | null = null;
+  private current: { parts: string[]; index: number; speaker: Speaker; finish: () => void } | null = null;
   private paused = false;
   private attempt = 0;
 
   speak(text: string, speaker: Speaker): Promise<void> {
     if (!speechSupported || !text.trim()) return Promise.resolve();
     this.current?.finish();
+    const voice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === speaker.voiceURI);
     return new Promise<void>((resolve) => {
       this.current = {
-        text,
+        parts: splitForVoice(text, voice),
+        index: 0,
         speaker,
         finish: () => {
           this.current = null;
@@ -126,7 +128,7 @@ export class BrowserSpeech implements Speech {
     if (!cur) return;
     const synth = window.speechSynthesis;
     const my = ++this.attempt;
-    const u = new SpeechSynthesisUtterance(cur.text);
+    const u = new SpeechSynthesisUtterance(cur.parts[cur.index]);
     const voice = synth.getVoices().find((v) => v.voiceURI === cur.speaker.voiceURI);
     if (voice) {
       u.voice = voice;
@@ -138,7 +140,9 @@ export class BrowserSpeech implements Speech {
     const done = () => {
       clearInterval(watchdog);
       // Ignore events from an utterance we cut off for pausing.
-      if (my === this.attempt && !this.paused) cur.finish();
+      if (my !== this.attempt || this.paused) return;
+      if (++cur.index < cur.parts.length) this.utter();
+      else cur.finish();
     };
     u.onend = done;
     u.onerror = done;
@@ -175,6 +179,28 @@ export class BrowserSpeech implements Speech {
 }
 
 const keepAlive = new Set<SpeechSynthesisUtterance>();
+
+/**
+ * Chrome's cloud (Google) voices stop after ~15 seconds of speech, so long
+ * sentences are split for non-local voices only, preferably at a comma or other
+ * clause break. Local voices get the whole sentence, with no extra pauses.
+ */
+const CLOUD_MAX_CHARS = 200;
+function splitForVoice(text: string, voice: SpeechSynthesisVoice | undefined): string[] {
+  if (!voice || voice.localService) return [text];
+  const parts: string[] = [];
+  let rest = text;
+  while (rest.length > CLOUD_MAX_CHARS) {
+    const head = rest.slice(0, CLOUD_MAX_CHARS);
+    const clause = Math.max(...[", ", "; ", ": ", " - ", " — "].map((p) => head.lastIndexOf(p)));
+    const cut = clause > 60 ? clause + 1 : head.lastIndexOf(" ");
+    if (cut <= 0) break;
+    parts.push(rest.slice(0, cut));
+    rest = rest.slice(cut).trimStart();
+  }
+  parts.push(rest);
+  return parts;
+}
 
 /** Speaks a short sample so users can audition a voice. */
 export function previewVoice(speaker: Speaker) {

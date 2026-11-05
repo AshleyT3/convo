@@ -36,8 +36,7 @@ function escapeRe(s: string): string {
 /**
  * Finds complete sentences in `text` starting at `from`. Returns [start, end)
  * ranges. If `final`, the trailing remainder is returned as a last chunk.
- * Very long sentences are split at a comma/space (some browsers cut off long
- * utterances).
+ * (Voices that can't say long sentences split them themselves; see browserSpeech.ts.)
  */
 export function takeSentences(text: string, from: number, final: boolean): [number, number][] {
   const out: [number, number][] = [];
@@ -49,14 +48,6 @@ export function takeSentences(text: string, from: number, final: boolean): [numb
     const end = m.index + m[0].length;
     pushChunk(text, start, end, out);
     start = end;
-  }
-  if (!final && text.length - start > 240) {
-    // A runaway sentence: speak up to the last comma/space so far.
-    const cut = Math.max(text.lastIndexOf(", ", text.length - 1), text.lastIndexOf(" ", text.length - 1));
-    if (cut > start + 40) {
-      pushChunk(text, start, cut + 1, out);
-      start = cut + 1;
-    }
   }
   if (final && start < text.length) pushChunk(text, start, text.length, out);
   return out;
