@@ -192,15 +192,40 @@ function splitForVoice(text: string, voice: SpeechSynthesisVoice | undefined): s
   const parts: string[] = [];
   let rest = text;
   while (rest.length > GOOGLE_MAX_CHARS) {
-    const head = rest.slice(0, GOOGLE_MAX_CHARS);
-    const clause = Math.max(...[", ", "; ", ": ", " - ", " — "].map((p) => head.lastIndexOf(p)));
-    const cut = clause > 60 ? clause + 1 : head.lastIndexOf(" ");
+    const cut = bestBreak(rest);
     if (cut <= 0) break;
     parts.push(rest.slice(0, cut));
     rest = rest.slice(cut).trimStart();
   }
   parts.push(rest);
   return parts;
+}
+
+/**
+ * Where to pause in an over-long sentence, searching between a quarter of the way
+ * in and the length limit, nearest the middle: after punctuation if possible,
+ * then just before a joining word ("but", "and"…), and only then at any space.
+ */
+function bestBreak(text: string): number {
+  const lo = Math.floor(text.length / 4);
+  const hi = Math.min(GOOGLE_MAX_CHARS, text.length - 10);
+  const mid = Math.min(text.length / 2, hi);
+  const nearest = (re: RegExp, after: boolean) => {
+    let best = -1;
+    for (const m of text.matchAll(re)) {
+      const at = after ? m.index + m[0].trimEnd().length : m.index;
+      if (at >= lo && at <= hi && (best < 0 || Math.abs(at - mid) < Math.abs(best - mid))) best = at;
+    }
+    return best;
+  };
+  const punct = nearest(/[,;:](?=\s)|\s[-—–](?=\s)/g, true);
+  if (punct > 0) return punct;
+  // Strong joiners start a clause; "and"/"or" often just join two nouns, so they come last.
+  const strong = nearest(/\s(?=(?:but|because|which|while|although|though|without|whereas|unless|since|so that|even if)\s)/gi, false);
+  if (strong > 0) return strong;
+  const weak = nearest(/\s(?=(?:and|or|so|when|where|if)\s)/gi, false);
+  if (weak > 0) return weak;
+  return nearest(/\s/g, false);
 }
 
 /** Speaks a short sample so users can audition a voice. */

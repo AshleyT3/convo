@@ -40,7 +40,10 @@ function escapeRe(s: string): string {
  */
 export function takeSentences(text: string, from: number, final: boolean): [number, number][] {
   const out: [number, number][] = [];
-  const boundary = /[.!?…]+["'”’)\]]*(?=\s)|\n/g;
+  // A sentence ends at . ! ? … followed by whitespace and then something that isn't a
+  // lowercase letter ("certain… enlightened" is one sentence). Waiting for that next
+  // character costs one token; the final flush handles the very end.
+  const boundary = /[.!?…]+["'”’)\]]*(?=\s+[^\s\p{Ll}])|\n/gu;
   boundary.lastIndex = from;
   let start = from;
   let m: RegExpExecArray | null;
