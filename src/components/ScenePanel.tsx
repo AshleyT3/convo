@@ -190,7 +190,8 @@ export function ScenePanel(p: Props) {
           <div className="fact-add">
             <input
               value={text}
-              placeholder="Add a fact about their world… (Enter)"
+              placeholder="Add a fact about their world… (Enter, or paste a list)"
+              title="Paste several lines to add one fact per line. Items already in the scene are skipped."
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && add()}
               onPaste={pasteList}
