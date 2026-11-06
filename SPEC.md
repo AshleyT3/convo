@@ -43,4 +43,5 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 ### Done
 - [x] **Show text as it's spoken:** a setting under "Speak out loud", on by default. Each sentence appears when its voice starts, with typing dots until then. If the show stops, unspoken text is shown dimmed.
 - [x] **Mark cloud voices** "· online" in the voice picker. Defaults now prefer local voices over Chrome's Google voices, which pause every sentence for a network round trip; Natural voices still come first.
+- [x] **Go easy on the GPU (for screen recording):** an in-browser-models option, off by default. WebLLM computes a token only when asked for the next chunk, so Convo idles between chunks for about as long as the last one took (15–200 ms), giving OBS GPU gaps to render frames.
 - [x] **Speak a spaced dash as a comma,** because some voices hold a dash too long. The text on screen keeps the dash.

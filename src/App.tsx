@@ -9,7 +9,7 @@ import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
 import { Footer } from "./components/Footer.tsx";
 import { ModelLicenseLine } from "./components/ModelLicenseLine.tsx";
-import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, webGpuSupported } from "./llm/webllm.ts";
+import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, setGentleGpu, webGpuSupported } from "./llm/webllm.ts";
 import { getGpuInfo, isMobileDevice, servedLocally, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
@@ -149,6 +149,8 @@ export function App() {
   useEffect(() => {
     setBrowser((b) => (loadedBrowserModel() === backend.browserModel ? { ...b, state: "ready" } : { state: "idle", progress: 0, text: "" }));
   }, [backend.browserModel]);
+
+  useEffect(() => setGentleGpu(!!backend.gentleGpu), [backend.gentleGpu]);
 
   const makeBackend = (): LlmBackend =>
     backend.kind === "browser"

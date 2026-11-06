@@ -182,6 +182,13 @@ export function SettingsPanel(p: Props) {
               {p.browser.state === "loading" && <progress value={p.browser.progress} max={1} />}
             </div>
             {p.browser.text && <p className="muted small">{p.browser.text}</p>}
+            <label className="toggle">
+              <input type="checkbox" checked={!!b.gentleGpu} onChange={(e) => setB({ gentleGpu: e.target.checked })} />
+              <span>
+                Go easy on the GPU (for screen recording): the model pauses between words so OBS and other recorders don't
+                drop frames. Sounds the same; text appears a little slower.
+              </span>
+            </label>
             <p className="muted small">
               Models are downloaded from their public hosts, not from this site. Downloading a model means accepting its
               licence (linked under each model).

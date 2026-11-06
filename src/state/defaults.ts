@@ -10,6 +10,8 @@ export interface BackendSettings {
   browserModel: string;
   /** True once the user picked a backend themselves; until then we auto-pick. */
   chosen: boolean;
+  /** In-browser models pause between tokens so screen recorders (OBS) get GPU time. */
+  gentleGpu?: boolean;
 }
 
 export const DEFAULT_SPEAKERS: Speaker[] = [

@@ -127,6 +127,19 @@ function adaptMessages(id: string, messages: ChatMessage[]): ChatMessage[] {
   return out;
 }
 
+/**
+ * "Go easy on the GPU": WebLLM computes each token only when we ask for the next
+ * chunk, so idling between requests leaves the GPU free. We idle about as long as
+ * the last token took (at least 15 ms), halving GPU time. That gives screen
+ * recorders like OBS regular gaps to render frames. Models write far faster than
+ * voices speak, so the conversation sounds the same. Module-level so it applies
+ * live, even mid-reply.
+ */
+let gentleGpu = false;
+export function setGentleGpu(on: boolean) {
+  gentleGpu = on;
+}
+
 export class WebLlmBackend implements LlmBackend {
   readonly label: string;
   private readonly id: string;
@@ -153,10 +166,17 @@ export class WebLlmBackend implements LlmBackend {
         stop: opts.stop?.slice(0, 4),
         ...(thinking ? { extra_body: { enable_thinking: false } } : {}),
       });
+      let asked = performance.now();
       for await (const chunk of stream) {
         if (opts.signal?.aborted) return;
         const piece = strip.push(chunk.choices[0]?.delta?.content ?? "");
         if (piece) yield piece;
+        if (gentleGpu) {
+          const took = performance.now() - asked;
+          await new Promise((r) => setTimeout(r, Math.min(200, Math.max(15, took))));
+          if (opts.signal?.aborted) return;
+        }
+        asked = performance.now();
       }
       finished = true;
     } finally {
