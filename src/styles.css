@@ -171,6 +171,10 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .fact.off .fact-text, .fact.expired .fact-text { text-decoration: line-through; }
 .fact-text { border: none; background: none; cursor: pointer; padding: 2px 4px; text-align: left; overflow-wrap: anywhere; }
 .fact-text:disabled { cursor: default; }
+.fact:not(.editing) { padding-left: 4px; }
+.fact.editing { flex: 1 1 100%; align-items: flex-start; gap: 8px; border-radius: 12px; padding: 4px; }
+.fact-edit { flex: 1; min-width: 0; padding: 4px 8px; border: 1px solid var(--brand); border-radius: 8px; background: var(--bg2); outline: none; resize: none; field-sizing: content; max-height: 8em; }
+.fact.editing .secret { padding: 5px 0 0 6px; }
 .secret { font-size: 0.75rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .timer { font-size: 0.75rem; color: var(--muted); padding: 0 4px; white-space: nowrap; }
 .fact-x { border: none; background: none; cursor: pointer; color: var(--muted); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; }

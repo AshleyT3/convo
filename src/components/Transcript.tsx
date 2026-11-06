@@ -56,7 +56,7 @@ export function Transcript({ turns, speakers, generatingId, speechOn, reveal, em
         const idx = Math.max(0, speakers.findIndex((s) => s.id === t.speakerId));
         const sp = speakers[idx];
         const offset = n > 1 ? (idx * 25) / (n - 1) : 0;
-        const hideUnspoken = reveal && speechOn;
+        const hideUnspoken = reveal && speechOn && !t.interrupted;
         // Revealing with speech: nothing spoken yet means nothing to show but the dots.
         if (hideUnspoken && !t.speaking && !t.spokenChars && t.text) {
           return (

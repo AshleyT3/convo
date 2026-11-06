@@ -46,6 +46,8 @@ export interface Turn {
   /** [start, end) of the sentence being spoken right now, if any. */
   speaking?: [number, number];
   done: boolean;
+  /** Stopped before all of it was spoken; it will never be, so any unspoken text stays visible. */
+  interrupted?: boolean;
   /**
    * "line" = a speaker's line; "note" = moderator/referee text the speakers also see;
    * "scene" = display-only marker (fact added/removed), never sent to the model.

@@ -46,7 +46,8 @@ Each speaker card has a voice picker, ▶ to preview, and ✎ for personality, s
   - **Quiet** (simply true) or **📢 announced** (breaking news they react to);
   - known to **everyone**, or a **🔒 secret** only one speaker knows;
   - **forever**, or **timed** (true for the next N lines);
-  - **switched off** (click it), **removed quietly** (×), or **retconned** (↩: they're told it's no longer true).
+  - **switched off** (click it), **edited** (✎), **removed quietly** (×), or **retconned** (↩: they're told it's no longer true).
+  - **📋 Copied** as a list, one per line, and **pasted** back into the "Add a fact" box. Items already in the scene are skipped.
   What was already said stays said; facts only shape what comes next.
   - **🎲 Twist** lets the AI invent a fact, and **🎭 Presets** load whole worlds (pirate cove, year 3000, zombie apocalypse…).
 - **Endless mode** with a rolling summary, so long conversations never overflow the model's memory.

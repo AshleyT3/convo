@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Conversation, type ConversationState } from "./engine/conversation.ts";
 import { MODES, SCENE_PRESETS, SUBJECT_IDEAS, TWIST_IDEAS, cleanTwist, modeById, twistMessages } from "./engine/prompts.ts";
+import { factKey, type ParsedFact } from "./engine/sceneText.ts";
 import type { ConversationSettings, ModeId, SceneFact, Speaker } from "./engine/types.ts";
 import { complete } from "./llm/types.ts";
 import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
@@ -218,6 +219,44 @@ export function App() {
       c.marker(`${n.announce ? "📢 Breaking news" : "🌍 New fact"}${whoKnows(n.scope)}: ${n.text}${n.lines ? ` · for ${n.lines} lines` : ""}`);
       c.sceneEvent(n.text, n.scope, n.announce ? "news" : "reminder");
     }
+  };
+
+  /** Adds pasted items as a union: anything matching an existing item is skipped, and that item stays as it is. */
+  const pasteFacts = (items: ParsedFact[], o: Omit<NewFact, "text">) => {
+    const used = convo.current?.lineCount() ?? 0;
+    const have = new Set(facts.map((f) => factKey(f.text)));
+    const fresh: SceneFact[] = [];
+    items.forEach((item, i) => {
+      const key = factKey(item.text);
+      if (have.has(key)) return;
+      have.add(key);
+      fresh.push({
+        id: `f${Date.now().toString(36)}${i}${Math.random().toString(36).slice(2, 6)}`,
+        text: item.text,
+        enabled: item.enabled,
+        scope: item.scope ?? o.scope,
+        expiresAt: o.lines > 0 ? used + o.lines : undefined,
+      });
+    });
+    if (fresh.length) applyFacts([...facts, ...fresh]);
+    if (live && fresh.length) {
+      const c = convo.current!;
+      c.marker(`${o.announce ? "📢 Breaking news" : "🌍 Scene"}: added ${fresh.length} fact${fresh.length === 1 ? "" : "s"}`);
+      // One note per audience, so secrets only reach the speaker who knows them.
+      for (const scope of new Set(fresh.filter((f) => f.enabled).map((f) => f.scope))) {
+        const text = fresh.filter((f) => f.enabled && f.scope === scope).map((f) => f.text).join("; ");
+        c.sceneEvent(text, scope, o.announce ? "news" : "reminder");
+      }
+    }
+    return { added: fresh.length, skipped: items.length - fresh.length };
+  };
+
+  /** Quiet for the speakers: the new text just applies from the next turn. */
+  const editFact = (id: string, text: string) => {
+    const f = facts.find((x) => x.id === id);
+    if (!f) return;
+    applyFacts(facts.map((x) => (x.id === id ? { ...x, text } : x)));
+    if (live && f.enabled) convo.current!.marker(`🌍 Fact changed${whoKnows(f.scope)}: ${f.text} → ${text}`);
   };
 
   const toggleFact = (id: string) => {
@@ -465,6 +504,8 @@ export function App() {
         live={live}
         twisting={twisting}
         onAdd={addFact}
+        onPaste={pasteFacts}
+        onEdit={editFact}
         onToggle={toggleFact}
         onRemove={removeFact}
         onTwist={(o) => void twist(o)}

@@ -196,9 +196,12 @@ export class Conversation {
     this.abort?.abort();
     this.speech.cancel();
     this.pauseWaiters.splice(0).forEach((r) => r());
+    // A line stopped before it had any words never happened, so that speaker keeps their turn.
+    this.turns = this.turns.filter((t) => (t.kind ?? "line") !== "line" || t.text.trim());
     for (const t of this.turns) {
       t.speaking = undefined;
       t.done = true;
+      if (t.spokenChars < t.text.length) t.interrupted = true;
     }
     this.generatingId = undefined;
     this.speechChain = Promise.resolve();
