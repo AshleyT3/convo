@@ -39,6 +39,7 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - [ ] **Test the big in-browser models** (Llama 3.1 8B, Qwen3 8B, Gemma 2 9B, Qwen 2.5 7B; 5 to 6.4 GB downloads each) on a strong GPU: load time, speed and quality.
 - [ ] **README screenshot or GIF** of a live conversation (can come from the YouTube video).
 - [ ] **Pin Wrangler as a dev dependency** (`npm install -D wrangler`), so `npm run deploy` stops asking to download it.
+- [ ] **Fix leftover bubbles after Stop, then Keep going.** A reply that was written but never spoken shows typing dots forever, because "Show text as it's spoken" hides it again. A reply stopped before any text stays as an empty bubble and still counts as that speaker's turn, so they lose it. Fix: show dots only on a reply still in progress, and remove empty bubbles on Stop. Test Stop and Keep going afterwards.
 
 ### Done
 - [x] **Show text as it's spoken:** a setting under "Speak out loud", on by default. Each sentence appears when its voice starts, with typing dots until then. If the show stops, unspoken text is shown dimmed.
