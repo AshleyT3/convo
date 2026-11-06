@@ -40,6 +40,11 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - [ ] **README screenshot or GIF** of a live conversation (can come from the YouTube video).
 - [ ] **Pin Wrangler as a dev dependency** (`npm install -D wrangler`), so `npm run deploy` stops asking to download it.
 - [ ] **Fix leftover bubbles after Stop, then Keep going.** A reply that was written but never spoken shows typing dots forever, because "Show text as it's spoken" hides it again. A reply stopped before any text stays as an empty bubble and still counts as that speaker's turn, so they lose it. Fix: show dots only on a reply still in progress, and remove empty bubbles on Stop. Test Stop and Keep going afterwards.
+- [ ] **Copy and paste scene items.** A 📋 Copy button copies all items, one per line, with `[off]` and `[only Name]` labels so they survive a round trip. Pasting several lines into the "Add a fact" box (Ctrl+V; no Paste button, which would trigger a browser permission prompt) adds them as a union: an item matching an existing one is skipped and the existing one stays as it is. Clean up blank lines and list markers. A paste shows one transcript line mid-conversation. Timers aren't copied.
+- [ ] **Edit a scene item in place.** A ✎ on the left of the chip turns it into a wrapping text box. Enter saves; Esc cancels and must not also stop the show. Mid-conversation, the new text applies from the next turn, the transcript shows "Fact changed: old → new", and the speakers aren't told.
+
+### Backlog
+- **Copy and paste a whole scenario as markdown.** Sections: `# Topic`, `# Scene items`, and one per speaker (`# Entity1`, `# Entity2`). Pasting applies only the sections present, so a partial paste changes only those. Reuse the scene-item line format. To settle first: whether a pasted topic or speaker replaces the current one mid-conversation, extra speakers, and voices missing on the other person's device.
 
 ### Done
 - [x] **Show text as it's spoken:** a setting under "Speak out loud", on by default. Each sentence appears when its voice starts, with typing dots until then. If the show stops, unspoken text is shown dimmed.
