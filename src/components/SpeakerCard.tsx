@@ -81,7 +81,7 @@ export function SpeakerCard({ speaker, voices, speaking, thinking, side, onChang
             </label>
           </div>
           <label className="field">
-            <span>Colour</span>
+            <span>Color</span>
             <input type="color" value={speaker.color} onChange={(e) => set({ color: e.target.value })} />
           </label>
         </div>

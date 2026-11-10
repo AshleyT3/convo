@@ -567,7 +567,11 @@ export function App() {
         )}
         {backend.kind === "browser" && browser.state === "error" && (
           <div className="banner error">
-            <span>Couldn't load the in-browser AI: {browser.text}</span>
+            <span>
+              {/network ?error|failed to fetch|cache\.add/i.test(browser.text)
+                ? "The model download was interrupted. Check your connection and press Start to try again."
+                : `Couldn't load the in-browser AI: ${browser.text}`}
+            </span>
             <button className="btn small" onClick={() => setShowSettings(true)}>Settings</button>
           </div>
         )}

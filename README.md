@@ -35,7 +35,7 @@ Convo uses the browser's built-in speech (the Web Speech API). Every browser sup
 - **macOS and Safari** have good built-in system voices.
 - **Linux** voices are often robotic (espeak).
 
-Each speaker card has a voice picker, ▶ to preview, and ✎ for personality, speed, pitch and colour.
+Each speaker card has a voice picker, ▶ to preview, and ✎ for personality, speed, pitch and color.
 
 ## Features
 - Modes: **Debate**, **Collaborate**, **Casual chat**, **Improv scene**, **Interview**.

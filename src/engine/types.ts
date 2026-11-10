@@ -10,7 +10,7 @@ export interface Speaker {
   voiceURI: string;
   rate: number; // 0.5 – 2
   pitch: number; // 0 – 2
-  color: string; // accent colour for the UI
+  color: string; // accent color for the UI
 }
 
 /**
