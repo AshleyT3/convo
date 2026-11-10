@@ -8,10 +8,10 @@ import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
 import { PromptViewer } from "./components/PromptViewer.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
-import { Footer } from "./components/Footer.tsx";
+import { AUDIENCE_NOTICE, Footer } from "./components/Footer.tsx";
 import { ModelLicenseLine } from "./components/ModelLicenseLine.tsx";
 import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, setGentleGpu, webGpuSupported } from "./llm/webllm.ts";
-import { getGpuInfo, isMobileDevice, servedLocally, type GpuInfo } from "./state/device.ts";
+import { getGpuInfo, isMobileDevice, phoneLayout, servedLocally, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
 import { Transcript } from "./components/Transcript.tsx";
@@ -56,8 +56,12 @@ export function App() {
   const [facts, setFacts] = useState<SceneFact[]>(() => loadSaved<SceneFact[]>("facts", []));
   const [twisting, setTwisting] = useState(false);
   const [inspectId, setInspectId] = useState<string | null>(null);
+  const [topicMissing, setTopicMissing] = useState(false);
+  const [followKey, setFollowKey] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   const convo = useRef<Conversation | null>(null);
+  const topicBox = useRef<HTMLTextAreaElement>(null);
   const speech = useMemo(() => new BrowserSpeech(), []);
 
   // Persist preferences (best effort).
@@ -164,11 +168,16 @@ export function App() {
   const hasTurns = state.turns.length > 0;
 
   const start = async (fresh: boolean) => {
-    let s = settings;
-    if (!s.subject.trim()) {
-      s = { ...s, subject: SUBJECT_IDEAS[Math.floor(Math.random() * SUBJECT_IDEAS.length)] };
-      setSettings(s);
+    const s = settings;
+    // The topic is always the visitor's choice: typed, or asked for with the dice.
+    if (fresh && !s.subject.trim()) {
+      setTopicMissing(true);
+      // On phones, focusing would raise the keyboard over the message.
+      if (phoneLayout()) topicBox.current?.scrollIntoView({ block: "center" });
+      else topicBox.current?.focus();
+      return;
     }
+    setFollowKey((k) => k + 1);
     // First run in browser mode: download/load the model right here (progress shows on
     // the main page), then carry straight on into the conversation.
     if (backend.kind === "browser" && loadedBrowserModel() !== backend.browserModel) {
@@ -340,6 +349,12 @@ export function App() {
   const surprise = () => {
     const pick = SUBJECT_IDEAS.filter((x) => x !== settings.subject);
     setSettings({ ...settings, subject: pick[Math.floor(Math.random() * pick.length)] });
+    setTopicMissing(false);
+  };
+
+  const jumpToSetup = () => {
+    window.scrollTo(0, 0);
+    window.dispatchEvent(new Event("scroll")); // stop following the chat before the next line arrives
   };
 
   const sendCurveball = () => {
@@ -375,6 +390,22 @@ export function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [running, state.status, showSettings, inspectId]);
+
+  // Phone layout: the ↑ Setup button appears once the top of the page has scrolled away.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 160);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Phone layout: model progress and errors appear below the setup area, so bring them into view.
+  useEffect(() => {
+    if (!phoneLayout()) return;
+    if (browser.state === "loading" || browser.state === "error" || state.error) {
+      document.querySelector(".stage .loading-card, .stage .banner.error")?.scrollIntoView({ block: "center" });
+    }
+  }, [browser.state, state.error]);
 
   // ---------------------------------------------------------------- view
 
@@ -424,11 +455,31 @@ export function App() {
         )
       : null;
 
+  // Start, pause and stop. Desktop shows these beside the topic; phones show the compact set in the top bar.
+  const transport = (compact: boolean) => {
+    const size = compact ? "" : " big";
+    return (
+      <>
+        {!running && (
+          <button className={`btn primary${size}`} onClick={() => void start(true)} disabled={browser.state === "loading"}>
+            ▶ {hasTurns ? (compact ? "New" : "New conversation") : "Start"}
+          </button>
+        )}
+        {!running && hasTurns && state.status !== "error" && (
+          <button className={`btn${size}`} onClick={() => void start(false)}>Keep going</button>
+        )}
+        {state.status === "running" && <button className={`btn${size}`} onClick={() => convo.current?.pause()}>❚❚ Pause</button>}
+        {state.status === "paused" && <button className={`btn primary${size}`} onClick={() => convo.current?.resume()}>▶ Resume</button>}
+        {running && <button className={`btn danger${size}`} onClick={stop}>■ Stop</button>}
+      </>
+    );
+  };
+
   return (
     <div className="app">
       {/* Control deck: sized to its content; scrolls on its own only if it would squeeze the chat. */}
       <div className="deck">
-      <header className="top">
+      <header className={`top${scrolled ? " scrolled" : ""}`}>
         <div className="brand">
           <span className="logo" aria-hidden><i /><i /></span>
           <div>
@@ -436,6 +487,8 @@ export function App() {
             <p className="tag">Two AIs. One topic. Out loud.</p>
           </div>
         </div>
+        {scrolled && <button className="btn top-jump" onClick={jumpToSetup}>↑ Setup</button>}
+        <div className="top-actions">{transport(true)}</div>
         <button className="backend-pill" onClick={() => setShowSettings(true)} title="Model settings">
           <span className={`dot ${backendOk ? "ok" : "bad"}`} />
           <span className="bp-text">{backendLabel}</span>
@@ -456,13 +509,19 @@ export function App() {
       {!speechSupported && <div className="banner">This browser can't speak aloud. The conversation will still play as text.</div>}
 
       <div className="controls">
+        <div className="subject-wrap">
         <div className="subject">
           <textarea
+            ref={topicBox}
             rows={2}
             value={settings.subject}
-            placeholder="What should they talk about? (leave empty for a surprise)"
+            className={topicMissing ? "invalid" : undefined}
+            placeholder="What should they talk about?"
             // A topic is one paragraph: newlines (e.g. pasted) become spaces.
-            onChange={(e) => setSettings({ ...settings, subject: e.target.value.replace(/\s*\n\s*/g, " ") })}
+            onChange={(e) => {
+              setSettings({ ...settings, subject: e.target.value.replace(/\s*\n\s*/g, " ") });
+              if (e.target.value.trim()) setTopicMissing(false);
+            }}
             onKeyDown={(e) => {
               if (e.key !== "Enter") return;
               e.preventDefault(); // Enter starts the show instead of adding a line
@@ -470,7 +529,12 @@ export function App() {
             }}
             aria-label="Subject"
           />
-          <button className="icon-btn big" title="Surprise me" onClick={surprise}>🎲</button>
+          <button className="icon-btn big dice" title="Pick a random topic" aria-label="Pick a random topic" onClick={surprise}>
+            <span aria-hidden>🎲</span>
+            <span aria-hidden>🎲</span>
+          </button>
+        </div>
+        {topicMissing && <p className="topic-missing" role="alert">Pick a topic first, or tap 🎲 for a random one.</p>}
         </div>
         <div className="modes" role="radiogroup" aria-label="Mode">
           {MODES.map((m) => (
@@ -487,17 +551,7 @@ export function App() {
           ))}
         </div>
         <div className="buttons">
-          {!running && (
-            <button className="btn primary big" onClick={() => void start(true)} disabled={browser.state === "loading"}>
-              ▶ {hasTurns ? "New conversation" : "Start"}
-            </button>
-          )}
-          {!running && hasTurns && state.status !== "error" && (
-            <button className="btn big" onClick={() => void start(false)}>Keep going</button>
-          )}
-          {state.status === "running" && <button className="btn big" onClick={() => convo.current?.pause()}>❚❚ Pause</button>}
-          {state.status === "paused" && <button className="btn primary big" onClick={() => convo.current?.resume()}>▶ Resume</button>}
-          {running && <button className="btn big danger" onClick={stop}>■ Stop</button>}
+          <div className="transport">{transport(false)}</div>
           {!running && hasTurns && <button className="btn ghost" onClick={clear}>Clear</button>}
         </div>
       </div>
@@ -540,11 +594,13 @@ export function App() {
           generatingId={state.generatingId}
           speechOn={settings.speech}
           reveal={settings.revealWithSpeech && running}
+          followKey={followKey}
           onInspect={settings.advanced ? (t) => setInspectId(t.id) : undefined}
           empty={
             <>
               <p className="big-hint">Pick a topic and a mode, then press <b>Start</b>.</p>
               <p className="muted">{modeById(settings.mode).blurb} Tap ✎ on a card to give someone a personality.</p>
+              <p className="muted small phone-notice">{AUDIENCE_NOTICE}</p>
             </>
           }
         />
@@ -583,7 +639,7 @@ export function App() {
           </div>
         )}
 
-        <div className="footer-bar">
+        <div className={`footer-bar${hasTurns ? "" : " idle"}`}>
           <input
             value={curveball}
             disabled={!hasTurns}

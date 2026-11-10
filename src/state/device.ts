@@ -26,6 +26,11 @@ export function servedLocally(hostname = typeof location !== "undefined" ? locat
   return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
 }
 
+/** Narrow screens use one page-long scroll instead of separate scroll areas (see the phones block in styles.css). */
+export function phoneLayout(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
+}
+
 export interface GpuInfo {
   webgpu: boolean;
   /** Supports 16-bit float shaders (needed by some in-browser models). */

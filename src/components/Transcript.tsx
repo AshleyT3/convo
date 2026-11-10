@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Speaker, Turn } from "../engine/types.ts";
+import { phoneLayout } from "../state/device.ts";
 
 interface Props {
   turns: Turn[];
@@ -9,32 +10,93 @@ interface Props {
   /** Hide each sentence until its voice starts (only while the show is live). */
   reveal: boolean;
   empty: React.ReactNode;
+  /** Changes each time the show is started, so the view goes back to following the chat. */
+  followKey: number;
   /** When set, lines get a 🔍 button that opens the prompt viewer. */
   onInspect?: (t: Turn) => void;
+}
+
+/** Phone layout: how far the end of the chat is below the visible area (above the curveball bar). */
+function pageGap(el: HTMLElement): number {
+  const bar = document.querySelector(".footer-bar")?.getBoundingClientRect().height ?? 0;
+  return el.getBoundingClientRect().bottom - (window.innerHeight - bar - 8);
 }
 
 /**
  * One shared timeline, with each speaker in their own lane (left/right for two;
  * staggered lanes if more speakers are ever added).
  */
-export function Transcript({ turns, speakers, generatingId, speechOn, reveal, empty, onInspect }: Props) {
+export function Transcript({ turns, speakers, generatingId, speechOn, reveal, empty, followKey, onInspect }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const touching = useRef(false);
+  const hasTurns = turns.length > 0;
+  const [away, setAway] = useState(false); // phone layout: scrolled away from the latest line
+
+  // A new show, or pressing Start or Keep going, goes back to following the chat.
+  const firstId = turns[0]?.id;
+  useEffect(() => {
+    stick.current = true;
+  }, [followKey, firstId]);
 
   useEffect(() => {
     const el = box.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    if (!phoneLayout()) {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+      setAway(false);
+      return;
+    }
+    // Never move the page under a finger, or while someone is up in the setup area.
+    if (stick.current && hasTurns && !touching.current) {
+      const gap = pageGap(el);
+      if (gap > 0) window.scrollBy(0, gap);
+    }
+    setAway(hasTurns && !stick.current);
   });
+
+  // Phone layout: the page scrolls rather than the chat box, so watch the page.
+  useEffect(() => {
+    const onPageScroll = () => {
+      const el = box.current;
+      if (!el || !phoneLayout()) return;
+      stick.current = pageGap(el) < 80;
+      setAway(hasTurns && !stick.current);
+    };
+    const onTouchStart = () => { touching.current = true; };
+    const onTouchEnd = () => { touching.current = false; };
+    window.addEventListener("scroll", onPageScroll, { passive: true });
+    window.addEventListener("resize", onPageScroll);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onPageScroll);
+      window.removeEventListener("resize", onPageScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [hasTurns]);
 
   const onScroll = () => {
     const el = box.current;
-    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (el && !phoneLayout()) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  const jumpToLatest = () => {
+    const el = box.current;
+    if (!el) return;
+    stick.current = true;
+    window.scrollBy(0, pageGap(el));
+    setAway(false);
   };
 
   const n = Math.max(1, speakers.length);
   const lastLine = [...turns].reverse().find((t) => (t.kind ?? "line") === "line");
 
   return (
+    <>
     <div className="transcript" ref={box} onScroll={onScroll} aria-live="polite">
       {!turns.length && <div className="empty">{empty}</div>}
       {turns.map((t) => {
@@ -94,6 +156,8 @@ export function Transcript({ turns, speakers, generatingId, speechOn, reveal, em
         );
       })}
     </div>
+    {away && <button className="btn small jump-latest" onClick={jumpToLatest}>↓ Latest</button>}
+    </>
   );
 }
 

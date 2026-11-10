@@ -39,7 +39,7 @@ Each speaker card has a voice picker, ▶ to preview, and ✎ for personality, s
 
 ## Features
 - Modes: **Debate**, **Collaborate**, **Casual chat**, **Improv scene**, **Interview**.
-- 🎲 random topics; leave the subject empty for a surprise.
+- 🎲 random topics, if you'd rather not pick one yourself.
 - Streaming text with the spoken sentence highlighted. The next line is written while the current one is spoken, so there's no dead air.
 - **Moderator curveballs:** type a line mid-conversation and both speakers react to it. Press 📌 to make it a lasting scene fact instead.
 - **🌍 Scene: living world facts.** Add facts to the speakers' world at any time ("all sparkling water is cold", "it's the year 3000"). They shape every reply from the next turn on. Each fact can be:

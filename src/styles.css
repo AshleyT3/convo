@@ -65,7 +65,15 @@ code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-siz
 
 /* controls */
 .controls { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "subject buttons" "modes buttons"; gap: 10px 14px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
-.subject { grid-area: subject; display: flex; gap: 8px; }
+.subject-wrap { grid-area: subject; min-width: 0; }
+.subject { display: flex; gap: 8px; }
+.subject textarea.invalid { border-color: #fbbf24; }
+.topic-missing { margin: 6px 0 0; font-size: 0.88rem; color: #fbbf24; }
+.dice span { grid-area: 1 / 1; line-height: 1; }
+.dice span:first-child { transform: translate(-5px, -6px) scale(0.85) rotate(-12deg); }
+.dice span:last-child { transform: translate(6px, 6px) scale(0.85) rotate(10deg); }
+.top-actions, .top-jump, .jump-latest, .phone-notice { display: none; }
+.transport { display: contents; }
 /* Fixed two-line height; a longer topic scrolls inside the box. */
 .subject textarea { flex: 1; min-width: 0; padding: 8px 14px; font-size: 1.05rem; line-height: 1.35;
   height: calc(2 * 1.35em + 18px); /* 2 lines + padding + border */ resize: none; overflow-y: auto; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); outline: none; }
@@ -270,6 +278,31 @@ details[open] summary { margin-bottom: 6px; }
   .bubble-row.right { margin-left: 12% !important; }
   .stats { display: none; }
   .tag { display: none; }
+
+  /* One scroll for the whole page, with the controls and curveball box always on screen. */
+  .app { height: auto; min-height: 100%; }
+  .deck, .stage { display: contents; }
+  .transcript { flex: none; overflow: visible; }
+
+  .top { position: sticky; top: 0; z-index: 5; justify-content: flex-start; gap: 6px; margin: -10px -16px 0; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .top.scrolled .brand h1 { display: none; }
+  .brand { gap: 8px; }
+  .brand h1 { font-size: 1.15rem; }
+  .logo { flex: none; }
+  .top-jump { display: block; padding: 6px 10px; font-size: 0.88rem; white-space: nowrap; }
+  .top-actions { display: flex; gap: 6px; margin-left: auto; }
+  .top-actions .btn { padding: 6px 10px; font-size: 0.88rem; white-space: nowrap; }
+  .backend-pill { flex: none; padding: 7px 9px; }
+  .bp-text { display: none; }
+
+  /* Start and Stop live in the top bar; only Clear stays here. */
+  .transport { display: none; }
+  .buttons:not(:has(> .btn)) { display: none; }
+
+  .footer-bar { position: sticky; bottom: 0; z-index: 5; margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-top: 1px solid var(--line); }
+  .footer-bar.idle { display: none; }
+  .jump-latest { display: block; position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); z-index: 6; box-shadow: var(--shadow); }
+  .phone-notice { display: block; margin-top: 10px; }
 }
 @media (max-width: 460px) {
   .cards { grid-template-columns: 1fr !important; }
