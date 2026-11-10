@@ -13,7 +13,8 @@ export function Footer({ license }: { license?: ModelLicense }) {
   return (
     <footer className="foot">
       <p>
-        AI-generated on your device. It may be wrong, weird or offensive, so don't take it seriously.
+        Intended for adults. Convo generates fictional conversation only — the characters have no tools and no access to anything outside the chat. Nothing they discuss actually happens.
+        {" "}AI-generated on your device. It may be wrong, weird or offensive, so don't take it seriously.
         {license?.builtWithLlama && (
           <>
             {" "}

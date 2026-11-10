@@ -388,14 +388,19 @@ export function App() {
     backend.kind === "browser"
       ? `${backend.browserModel.split("-q4")[0]} · in browser`
       : `${backend.model || "local model"} · ${backend.baseUrl.replace(/^https?:\/\//, "").replace(/\/v1\/?$/, "")}`;
-  const backendOk = backend.kind === "browser" ? browser.state === "ready" || webGpuSupported : server.state === "ok";
+  // Green only if a GPU can actually be used; before the GPU check finishes, go by browser support.
+  const backendOk = backend.kind === "browser" ? browser.state === "ready" || (webGpuSupported && gpu?.webgpu !== false) : server.state === "ok";
 
   const cantRunHere = gpu !== null && !gpu.webgpu && (backend.kind === "browser" || server.state === "down");
+  // The browser has WebGPU but no GPU answered: often temporary, such as after a graphics driver reset.
+  const gpuUnreachable = cantRunHere && webGpuSupported;
   const problem = cantRunHere ? (
     <div className="banner">
       <span>
-        <b>This device can't run AI on its own.</b> The browser doesn't support WebGPU
-        {backend.kind === "server" ? " and no model server answered" : ""}. Try a recent Chrome or Edge on a computer
+        <b>{gpuUnreachable ? "Can't reach your graphics card right now." : "This device can't run AI on its own."}</b>{" "}
+        {gpuUnreachable ? "In-browser AI needs it" : "The browser doesn't support WebGPU"}
+        {backend.kind === "server" ? " and no model server answered" : ""}.{" "}
+        {gpuUnreachable ? "Try restarting your browser or computer" : "Try a recent Chrome or Edge on a computer"}
         {mobile ? "" : ", or run Ollama / llama.cpp and pick it in ⚙ Settings"}.
       </span>
       <span className="banner-actions">
