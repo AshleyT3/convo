@@ -23,7 +23,7 @@ export interface ModelLicense {
   url: string;
   /** Use policy users must follow (Llama AUP, Gemma prohibited-use policy). */
   policyUrl?: string;
-  /** Llama licence: products must display "Built with Llama". */
+  /** Llama license: products must display "Built with Llama". */
   builtWithLlama?: boolean;
 }
 
@@ -47,7 +47,7 @@ const GEMMA: ModelLicense = {
 const APACHE: ModelLicense = { name: "Apache 2.0", url: "https://www.apache.org/licenses/LICENSE-2.0" };
 const MIT: ModelLicense = { name: "MIT", url: "https://opensource.org/license/mit" };
 
-// Only models whose licences allow use in a free, possibly donation-supported app.
+// Only models whose licenses allow use in a free, possibly donation-supported app.
 export const BROWSER_MODELS: BrowserModel[] = [
   { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B", sizeGB: 2.3, note: "Recommended: good balance", license: LLAMA_32 },
   { id: "gemma-2-2b-it-q4f16_1-MLC", label: "Gemma 2 2B", sizeGB: 1.9, note: "Chatty, light", license: GEMMA },

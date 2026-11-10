@@ -185,7 +185,7 @@ input[type="color"] { width: 40px; height: 26px; border: none; background: none;
 .toggle-btn.on { border-color: #fbbf24; color: #fbbf24; }
 .scene-marker { align-self: center; font-size: 0.8rem; color: var(--muted); padding: 2px 10px; border-left: 2px solid #34d399; border-right: 2px solid #34d399; border-radius: 4px; max-width: 90%; text-align: center; }
 
-/* licences + footer */
+/* licenses + footer */
 .m-lic { grid-area: l; }
 .lic { font-size: 0.75rem; color: var(--muted); }
 .lic a, .foot a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); }

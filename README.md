@@ -100,17 +100,17 @@ The conversation is generated on your device: in your browser, or by the model s
 - In-browser models are downloaded once from their public model hosts, then cached by your browser.
 - **Voices:** local system voices run on your device. "Online" or "Natural" voices (Microsoft Edge) and Google voices (Chrome) are cloud voices: the browser sends the spoken text to Microsoft or Google to synthesise it. Pick a local voice if that matters to you.
 
-## Model licences
-Convo doesn't host or distribute model weights; the browser downloads them from their public hosts. Each model has its own licence, linked in ⚙ Settings, and downloading one means accepting it.
+## Model licenses
+Convo doesn't host or distribute model weights; the browser downloads them from their public hosts. Each model has its own license, linked in ⚙ Settings, and downloading one means accepting it.
 
-| In-browser models | Licence |
+| In-browser models | License |
 |---|---|
 | Llama 3.2 1B / 3B, Llama 3.1 8B | Llama Community License and Acceptable Use Policy. **Built with Llama** |
 | Gemma 2 2B / 9B | Gemma Terms of Use and Prohibited Use Policy |
 | Qwen3 8B, Qwen 2.5 7B, SmolLM2 360M | Apache 2.0 |
 | Phi 3.5 mini | MIT |
 
-Only models whose licences allow use in a free, donation-supported app are included.
+Only models whose licenses allow use in a free, donation-supported app are included.
 
 ## Credits
 - [WebLLM](https://github.com/mlc-ai/web-llm) (Apache-2.0) for in-browser models, [React](https://react.dev) and [Vite](https://vite.dev).

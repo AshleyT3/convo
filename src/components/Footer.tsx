@@ -1,7 +1,7 @@
 import type { ModelLicense } from "../llm/webllm.ts";
 import { SITE } from "../site.ts";
 
-/** Small print: AI disclaimer, model licence notices, credits and support links. */
+/** Small print: AI disclaimer, model license notices, credits and support links. */
 export function Footer({ license }: { license?: ModelLicense }) {
   const links = [
     SITE.buyMeACoffee && { href: SITE.buyMeACoffee, text: "☕ Buy me a coffee" },
@@ -19,7 +19,7 @@ export function Footer({ license }: { license?: ModelLicense }) {
           <>
             {" "}
             <b>Built with Llama</b> (
-            <a href={license.url} target="_blank" rel="noreferrer">licence</a>,{" "}
+            <a href={license.url} target="_blank" rel="noreferrer">license</a>,{" "}
             <a href={license.policyUrl} target="_blank" rel="noreferrer">acceptable use</a>).
           </>
         )}

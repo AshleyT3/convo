@@ -191,7 +191,7 @@ export function SettingsPanel(p: Props) {
             </label>
             <p className="muted small">
               Models are downloaded from their public hosts, not from this site. Downloading a model means accepting its
-              licence (linked under each model).
+              license (linked under each model).
             </p>
           </div>
         )}
