@@ -46,6 +46,8 @@ export interface ConversationState {
   lastWordsPerSec?: number;
 }
 
+const SUMMARY_MAX_TOKENS = 160;
+
 let nextId = 0;
 const uid = () => `t${Date.now().toString(36)}${(nextId++).toString(36)}`;
 
@@ -377,13 +379,15 @@ export class Conversation {
     const upTo = lines.length - keep;
     const chunk = lines.slice(this.summarizedLines, upTo);
     this.abort = new AbortController();
+    // The summary sits in every later prompt, and small models ignore "3 to 5 sentences",
+    // so its size is capped here. Otherwise each turn's prompt, and its GPU burst, keeps growing.
     const text = await complete(this.backend, summaryMessages(this.speakers, this.summary, chunk), {
       temperature: 0.3,
-      maxTokens: 700,
+      maxTokens: SUMMARY_MAX_TOKENS,
       signal: this.abort.signal,
     });
     if (this.stopped) return;
-    const clean = text.trim();
+    const clean = wholeSentences(text.trim());
     if (clean) {
       this.summary = clean;
       this.summarizedLines = upTo;
@@ -431,6 +435,11 @@ export class Conversation {
       this.onChange(this.getState());
     });
   }
+}
+
+/** Drops an unfinished last sentence (a capped reply can stop mid-sentence). */
+function wholeSentences(text: string): string {
+  return text.match(/^[\s\S]*[.!?…]["'”’)\]]*(?=\s|$)/)?.[0] ?? text;
 }
 
 function sleep(ms: number) {

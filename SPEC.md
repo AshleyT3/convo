@@ -39,6 +39,8 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - [ ] **Test the big in-browser models** (Llama 3.1 8B, Qwen3 8B, Gemma 2 9B, Qwen 2.5 7B; 5 to 6.4 GB downloads each) on a strong GPU: load time, speed and quality.
 - [ ] **README screenshot or GIF** of a live conversation (can come from the YouTube video).
 - [ ] **Pin Wrangler as a dev dependency** (`npm install -D wrangler`), so `npm run deploy` stops asking to download it.
+- [ ] **Bug: long unbroken text overflows its chat box.** A moderator line with no spaces runs past the note's edge and off the side of the chat. Likely fix: let `.note` wrap anywhere, as chat bubbles do, and check `.scene-marker` too.
+- [ ] **Bug: the Memory setting is awkward to type into.** Clearing the box snaps it straight back (to 8), so you can't just replace the number: typing 4 needs tricks like making "48" and deleting the 8. On phones, without arrow buttons, that's the only way. Likely fix: allow the box to be empty while typing and apply the minimum of 4 when you leave it.
 
 ### Backlog
 - **Copy and paste a whole scenario as markdown.** Sections: `# Topic`, `# Scene items`, and one per speaker (`# Entity1`, `# Entity2`). Pasting applies only the sections present, so a partial paste changes only those. Reuse the scene-item line format. To settle first: whether a pasted topic or speaker replaces the current one mid-conversation, extra speakers, and voices missing on the other person's device.

@@ -8,6 +8,7 @@ import { ScenePanel, type NewFact } from "./components/ScenePanel.tsx";
 import { PromptViewer } from "./components/PromptViewer.tsx";
 import { OpenAiCompatBackend, listServerModels } from "./llm/openaiCompat.ts";
 import type { LlmBackend } from "./llm/types.ts";
+import { diagOn, startDiagWatch, withDiag } from "./llm/diag.ts";
 import { AUDIENCE_NOTICE, Footer } from "./components/Footer.tsx";
 import { ModelLicenseLine } from "./components/ModelLicenseLine.tsx";
 import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, setGentleGpu, webGpuSupported } from "./llm/webllm.ts";
@@ -157,10 +158,17 @@ export function App() {
 
   useEffect(() => setGentleGpu(!!backend.gentleGpu), [backend.gentleGpu]);
 
-  const makeBackend = (): LlmBackend =>
-    backend.kind === "browser"
-      ? new WebLlmBackend(backend.browserModel)
-      : new OpenAiCompatBackend({ baseUrl: backend.baseUrl, model: backend.model, apiKey: backend.apiKey });
+  useEffect(() => {
+    if (diagOn) startDiagWatch();
+  }, []);
+
+  const makeBackend = (): LlmBackend => {
+    const b: LlmBackend =
+      backend.kind === "browser"
+        ? new WebLlmBackend(backend.browserModel)
+        : new OpenAiCompatBackend({ baseUrl: backend.baseUrl, model: backend.model, apiKey: backend.apiKey });
+    return diagOn ? withDiag(b) : b;
+  };
 
   // ---------------------------------------------------------------- controls
 
