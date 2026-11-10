@@ -169,7 +169,10 @@ export class Conversation {
     } catch (e) {
       if (this.stopped) return;
       this.error = e instanceof Error ? e.message : String(e);
+      this.stopped = true; // so any sentences still queued aren't spoken
       this.speech.cancel();
+      this.closeOpenLines();
+      this.speechChain = Promise.resolve();
       this.setStatus("error");
     } finally {
       this.generatingId = undefined;
@@ -198,13 +201,7 @@ export class Conversation {
     this.abort?.abort();
     this.speech.cancel();
     this.pauseWaiters.splice(0).forEach((r) => r());
-    // A line stopped before it had any words never happened, so that speaker keeps their turn.
-    this.turns = this.turns.filter((t) => (t.kind ?? "line") !== "line" || t.text.trim());
-    for (const t of this.turns) {
-      t.speaking = undefined;
-      t.done = true;
-      if (t.spokenChars < t.text.length) t.interrupted = true;
-    }
+    this.closeOpenLines();
     this.generatingId = undefined;
     this.speechChain = Promise.resolve();
     if (this.status !== "idle") this.setStatus("finished");
@@ -219,6 +216,16 @@ export class Conversation {
   }
 
   // ---------------------------------------------------------------- internals
+
+  /** A line ended before it had any words never happened, so that speaker keeps their turn. */
+  private closeOpenLines() {
+    this.turns = this.turns.filter((t) => (t.kind ?? "line") !== "line" || t.text.trim());
+    for (const t of this.turns) {
+      t.speaking = undefined;
+      t.done = true;
+      if (t.spokenChars < t.text.length) t.interrupted = true;
+    }
+  }
 
   private lines(): Turn[] {
     return this.turns.filter((t) => (t.kind ?? "line") === "line");

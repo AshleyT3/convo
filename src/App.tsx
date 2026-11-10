@@ -11,7 +11,7 @@ import type { LlmBackend } from "./llm/types.ts";
 import { diagOn, startDiagWatch, withDiag } from "./llm/diag.ts";
 import { AUDIENCE_NOTICE, Footer } from "./components/Footer.tsx";
 import { ModelLicenseLine } from "./components/ModelLicenseLine.tsx";
-import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, setGentleGpu, webGpuSupported } from "./llm/webllm.ts";
+import { BROWSER_MODELS, DEFAULT_PHONE_MODEL, GPU_RESET_MESSAGE, WebLlmBackend, browserModelById, loadBrowserModel, loadedBrowserModel, setGentleGpu, webGpuSupported } from "./llm/webllm.ts";
 import { getGpuInfo, isMobileDevice, phoneLayout, servedLocally, type GpuInfo } from "./state/device.ts";
 import { SettingsPanel, type BrowserLoad, type ServerStatus } from "./components/SettingsPanel.tsx";
 import { SpeakerCard } from "./components/SpeakerCard.tsx";
@@ -157,6 +157,11 @@ export function App() {
   }, [backend.browserModel]);
 
   useEffect(() => setGentleGpu(!!backend.gentleGpu), [backend.gentleGpu]);
+
+  // After a lost GPU the model is gone, so Settings shouldn't keep saying it's loaded.
+  useEffect(() => {
+    if (state.error === GPU_RESET_MESSAGE) setBrowser({ state: "idle", progress: 0, text: "" });
+  }, [state.error]);
 
   useEffect(() => {
     if (diagOn) startDiagWatch();
@@ -473,7 +478,7 @@ export function App() {
             ▶ {hasTurns ? (compact ? "New" : "New conversation") : "Start"}
           </button>
         )}
-        {!running && hasTurns && state.status !== "error" && (
+        {!running && hasTurns && (
           <button className={`btn${size}`} onClick={() => void start(false)}>Keep going</button>
         )}
         {state.status === "running" && <button className={`btn${size}`} onClick={() => convo.current?.pause()}>❚❚ Pause</button>}
@@ -640,9 +645,9 @@ export function App() {
           </div>
         )}
 
-        {state.error && (
+        {state.error && browser.state !== "loading" && (
           <div className="banner error">
-            <span>Something went wrong: {state.error}</span>
+            <span>{state.error === GPU_RESET_MESSAGE ? state.error : `Something went wrong: ${state.error}`}</span>
             <button className="btn small" onClick={() => setShowSettings(true)}>Settings</button>
           </div>
         )}

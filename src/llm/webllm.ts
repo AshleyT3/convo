@@ -77,8 +77,23 @@ export interface LoadProgress {
 type Engine = import("@mlc-ai/web-llm").WebWorkerMLCEngine;
 
 let engine: Engine | null = null;
+let worker: Worker | null = null;
 let loadedId = "";
 let loading: Promise<Engine> | null = null;
+
+/** Shown when the GPU connection is lost mid-show; the next Start loads the model again. */
+export const GPU_RESET_MESSAGE = "Your graphics driver reset, so the model stopped. Press Start or Keep going to reload it and carry on.";
+
+/** After a lost GPU, the library has disposed the model, so every later use fails with this. */
+const isGpuLoss = (e: unknown) => /already been disposed|device.{0,20}lost/i.test(String(e));
+
+/** Throws away a dead engine and its worker, so the next load starts fresh. */
+function discardEngine() {
+  worker?.terminate();
+  worker = null;
+  engine = null;
+  loadedId = "";
+}
 
 export function loadedBrowserModel(): string {
   return loadedId;
@@ -106,12 +121,15 @@ export async function loadBrowserModel(id: string, onProgress: (p: LoadProgress)
       await engine.reload(id);
       return engine;
     }
-    const worker = new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" });
     return lib.CreateWebWorkerMLCEngine(worker, id, { initProgressCallback: report });
   })();
   try {
     engine = await loading;
     loadedId = id;
+  } catch (e) {
+    discardEngine(); // a half-loaded engine can't be reused
+    throw e;
   } finally {
     loading = null;
   }
@@ -179,6 +197,10 @@ export class WebLlmBackend implements LlmBackend {
         asked = performance.now();
       }
       finished = true;
+    } catch (err) {
+      if (!isGpuLoss(err)) throw err;
+      if (engine === e) discardEngine();
+      throw new Error(GPU_RESET_MESSAGE);
     } finally {
       opts.signal?.removeEventListener("abort", onAbort);
       // Consumer stopped early (e.g. length cap): stop generating on the GPU too.

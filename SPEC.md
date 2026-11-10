@@ -46,6 +46,7 @@ A dead-simple, open-source, zero-cost novelty: two AI characters talk to each ot
 - **Copy and paste a whole scenario as markdown.** Sections: `# Topic`, `# Scene items`, and one per speaker (`# Entity1`, `# Entity2`). Pasting applies only the sections present, so a partial paste changes only those. Reuse the scene-item line format. To settle first: whether a pasted topic or speaker replaces the current one mid-conversation, extra speakers, and voices missing on the other person's device.
 
 ### Done
+- [x] **Recover from a lost GPU:** when a driver reset takes the model down, Convo says so, discards the dead engine, and loads the model again on the next Start or Keep going. A line that hadn't produced any words is dropped, so that speaker keeps their turn.
 - [x] **Phone layout:** at 720 px and narrower, one page-long scroll with a fixed bar for Start, Pause and Stop, a fixed curveball box once a show exists, and ↑ Setup and ↓ Latest jumps. The chat only follows new lines when you're already at the latest one.
 - [x] **A topic is required:** Start with an empty topic asks for one or for 🎲, so the topic is always the visitor's choice.
 - [x] **Stop, then Keep going:** a stopped reply keeps its unspoken text visible, dimmed, instead of hiding it behind dots. A reply stopped before any words is removed, so that speaker keeps their turn.
